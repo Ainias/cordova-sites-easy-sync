@@ -1,0 +1,22 @@
+{
+  "name": "cordova-sites-easy-sync",
+  "displayName": "Easy Sync",
+  "version": "0.1.0",
+  "description": "Einfaches Syncen von Datenbank-Objekten auf dem Client per cordova sites",
+  "scripts": {
+    "build": "node bin/build.js"
+  },
+  "author": "Silas Günther",
+  "dependencies": {
+    "cordova-sites": "file:../cordova-sites",
+    "express": "^4.16.4",
+    "sequelize": "^4.42.0"
+  },
+  "devDependencies": {
+    "rollup": "^1.2.2",
+    "rollup-plugin-commonjs": "^9.2.0",
+    "rollup-plugin-json": "^3.1.0",
+    "rollup-plugin-import-file-path": "git+https://github.com/Ainias/rollup-plugin-import-file-path.git",
+    "rollup-plugin-html-import-file-path": "git+https://github.com/Ainias/rollup-plugin-html-import-file-path.git"
+  }
+}
