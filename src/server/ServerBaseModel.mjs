@@ -12,8 +12,8 @@ export class ServerBaseModel {
      * @param offset
      * @returns {Promise<[ServerBaseModel]>}
      */
-    static async select(where, orderBy, limit, offset) {
-       return EasySyncServerDb.getInstance().select(this, where, orderBy, limit, offset);
+    static async select(where, orderBy, limit, offset, includeRelationships) {
+       return EasySyncServerDb.getInstance().select(this, where, orderBy, limit, offset, includeRelationships);
     }
 
     static async selectOne(where, orderBy, offset) {

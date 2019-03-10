@@ -6,6 +6,7 @@ export class LastSyncDates extends BaseModel{
         super();
         this._model = "";
         this._lastSynced = new Date(0);
+        this._where = "";
     }
 
     getModel(){

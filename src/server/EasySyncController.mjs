@@ -3,18 +3,21 @@ import Sequelize from 'sequelize';
 
 const Op = Sequelize.Op;
 
-const MAX_MODELS_PER_RUN = 2;
+const MAX_MODELS_PER_RUN = 200;
 
 export class EasySyncController {
 
-    static async _syncModel(Model, lastSynced, offset) {
+    static async _syncModel(Model, lastSynced, offset, where) {
         let dateLastSynced = new Date(parseInt(lastSynced || 0));
         let newDateLastSynced = new Date().getTime();
         offset = parseInt(offset);
 
-        let entities = await Model.select({
+        where = where || {};
+        where = Object.assign(where, {
             "updatedAt": {[Op.gte]: dateLastSynced}
-        }, null, MAX_MODELS_PER_RUN, offset);
+        });
+
+        let entities = await Model.select(where, null, MAX_MODELS_PER_RUN, offset, true);
 
         return {
             "newLastSynced": newDateLastSynced,
@@ -50,7 +53,7 @@ export class EasySyncController {
         let requests = [];
         let modelNames = Object.keys(modelClasses);
         modelNames.forEach(modelName => {
-            requests.push(EasySyncController._syncModel(modelClasses[modelName], (requestedModels[modelName].lastSynced || 0), (req.query.offset || 0)));
+            requests.push(EasySyncController._syncModel(modelClasses[modelName], (requestedModels[modelName].lastSynced || 0), (req.query.offset || 0), requestedModels[modelName].where));
         });
 
         let results = await Promise.all(requests);

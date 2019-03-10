@@ -10,15 +10,65 @@ export class EasySyncServerDb {
         this._sequelize = EasySyncServerDb._sequelize;
         this._updateBaseModel();
         this._createModels();
-        this._syncPromise = this._sequelize.sync({alter: true});
+        this._syncPromise = this._sequelize.sync({alter: true}).catch(e => {
+            console.error(e);
+            return Promise.reject(e);
+        });
     }
 
     _createModels() {
         EasySyncServerDb._easySync._models.forEach(model => {
+            model.relationships = {};
             Object.setPrototypeOf(model, EasySyncBaseModel);
+            let definition = EasySyncServerDb._getSequelizeDefinitionFromModel(model);
+            let {columns} = model.getTableDefinition();
+            Object.keys(definition).forEach((name, i) => {
+                if (EasySync.isRelationship(definition[name].type)) {
+                    model.relationships[name] = columns[i];
+                    delete definition[name];
+                }
+            });
             model.sequelizeModelDefinition = this._sequelize.define(model.getModelName(),
-                EasySyncServerDb._getSequelizeDefinitionFromModel(model), EasySyncServerDb.TABLE_SETTINGS);
+                definition, EasySyncServerDb.TABLE_SETTINGS);
             this._models[model.getModelName()] = model;
+        });
+        Object.keys(this._models).forEach(modelName => {
+            Object.keys(this._models[modelName].relationships).forEach(name => {
+                let column = this._models[modelName].relationships[name];
+                let definition = {};
+
+                if (!column["target"]) {
+                    column["target"] = name;
+                }
+
+                if (!column["as"]) {
+                    column["as"] = name;
+                }
+
+                let copyKeys = [
+                    "as",
+                    "through"
+                ];
+                copyKeys.forEach(key => {
+                    if (column[key]) {
+                        definition[key] = column[key];
+                    }
+                });
+                let target = column["target"];
+                let targetModel = this._models[target];
+                column.targetModel = targetModel;
+
+                switch (column.type) {
+                    case EasySync.TYPES.MANY_TO_MANY: {
+                        this._models[modelName].sequelizeModelDefinition.belongsToMany(targetModel.sequelizeModelDefinition, definition);
+                        break;
+                    }
+                    case EasySync.TYPES.ONE_TO_MANY: {
+                        this._models[modelName].sequelizeModelDefinition.hasMany(targetModel.sequelizeModelDefinition, definition);
+                        break;
+                    }
+                }
+            });
         });
     }
 
@@ -42,6 +92,14 @@ export class EasySyncServerDb {
         }
     }
 
+    async saveModels(models) {
+        await this._syncPromise;
+
+        let res = [];
+        models.forEach(model => res.push(this.saveModel(model)));
+        return Promise.all(res);
+    }
+
     /**
      * @param {EasySyncBaseModel} model
      * @returns {Promise<{EasySyncBaseModel}>}
@@ -49,18 +107,44 @@ export class EasySyncServerDb {
     async saveModel(model) {
         await this._syncPromise;
 
-        // model.setLastUpdated(new Date());
+        if (Array.isArray(model)) {
+            return this.saveModels(model);
+        }
 
         let values = model.constructor._modelToJson(model);
         if (model.getId()) {
             //update
-            if (!model.sequelizeModel){
+            if (!model.sequelizeModel) {
                 model.sequelizeModel = await this._models[model.constructor.getModelName()].sequelizeModelDefinition.findById(model.getId());
             }
-            if (model.sequelizeModel.version !== model.getVersion()){
-                throw new Error("wrong version for model with id "+model.getId()+"!");
+            if (model.sequelizeModel.version !== model.getVersion()) {
+                throw new Error("wrong version for model with id " + model.getId() + "!");
             }
-            Object.assign(model.sequelizeModel, values);
+            // console.log(model.sequelizeModel);
+
+            let {columns} = model.constructor.getTableDefinition();
+            let forEachPromise = Promise.resolve();
+            columns.forEach(column => {
+                forEachPromise = forEachPromise.then(async () => {
+                    if (EasySync.isRelationship(column.type)) {
+
+                        let getter = "get" + column.key.substr(0, 1).toUpperCase() + column.key.substr(1)+"s";
+                        let value = await this.saveModel(model[getter]());
+
+                        if (Array.isArray(value))
+                        {
+                            let sequelizeValues = [];
+                            value.forEach(val => sequelizeValues.push(val.sequelizeModel));
+                            value =sequelizeValues;
+                        }
+
+                        model.sequelizeModel["set" + column.key.substr(0, 1).toUpperCase() + column.key.substr(1)](value);
+                    } else {
+                        model.sequelizeModel[column.key] = values[column.key];
+                    }
+                });
+            });
+            await forEachPromise;
             model.sequelizeModel = await model.sequelizeModel.save();
         } else {
             //create
@@ -118,9 +202,10 @@ export class EasySyncServerDb {
                 return Sequelize.DataTypes.STRING
             }
         }
+        return easySyncType;
     }
 
-    async select(model, where, orderBy, limit, offset) {
+    async select(model, where, orderBy, limit, offset, includeRelationships) {
         let query = {};
         if (where) {
             query.where = where;
@@ -141,7 +226,16 @@ export class EasySyncServerDb {
             }
             query.order = orderBy;
         }
-
+        if (includeRelationships) {
+            query.include = [];
+            Object.keys(this._models[model.getModelName()].relationships).forEach(targetName => {
+                query.include.push({
+                    model: this._models[this._models[model.getModelName()].relationships[targetName].target].sequelizeModelDefinition,
+                    as: this._models[model.getModelName()].relationships[targetName]["as"]
+                });
+            });
+        }
+        await this._syncPromise;
         let sequelizeModels = await this._models[model.getModelName()].sequelizeModelDefinition.findAll(query);
         let models = this._models[model.getModelName()]._inflate(sequelizeModels);
 

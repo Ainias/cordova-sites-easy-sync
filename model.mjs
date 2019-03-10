@@ -1,8 +1,16 @@
-class EasySync{
-    static addModel(model){
+class EasySync {
+    static addModel(model) {
         EasySync._models.push(model);
     }
+
+    static isRelationship(type) {
+        return (type === EasySync.TYPES.ONE_TO_ONE ||
+            type === EasySync.TYPES.ONE_TO_MANY ||
+            type === EasySync.TYPES.MANY_TO_ONE ||
+            type === EasySync.TYPES.MANY_TO_MANY)
+    }
 }
+
 EasySync._models = [];
 EasySync.TYPES = {
     JSON: "json",
@@ -10,6 +18,10 @@ EasySync.TYPES = {
     STRING: "string",
     DATE: "timeId",
     BOOLEAN: "bool",
+    ONE_TO_ONE: "oneToOne",
+    ONE_TO_MANY: "oneToMany",
+    MANY_TO_ONE: "manyToOne",
+    MANY_TO_MANY: "manyToMany"
 };
 
 class EasySyncBaseModel {
@@ -92,16 +104,33 @@ class EasySyncBaseModel {
         return this.constructor.saveModel(this);
     }
 
+    static _modelsToJson(models) {
+        let jsonArray = [];
+        models.forEach(model => jsonArray.push(this._modelToJson(model)));
+        return jsonArray;
+    }
+
     static _modelToJson(model) {
+        if (Array.isArray(model)) {
+            return this._modelsToJson(model);
+        }
+
         let {columns} = this.getTableDefinition();
         let jsonObject = {};
         columns.forEach(column => {
             let getterName = ["get", column.key.substr(0, 1).toUpperCase(), column.key.substr(1)].join('');
+            if (column.type === EasySync.TYPES.MANY_TO_MANY || column.type === EasySync.TYPES.ONE_TO_MANY) {
+                getterName += "s";
+            }
             if (typeof model[getterName] === "function") {
                 jsonObject[column.key] = model[getterName]();
                 if (column.type === EasySync.TYPES.JSON) {
                     jsonObject[column.key] = JSON.stringify(jsonObject[column.key]);
                 }
+                if (EasySync.isRelationship(column.type)) {
+                    jsonObject[column.key] = this.relationships[column.key].targetModel._modelToJson(jsonObject[column.key]);
+                }
+
             }
         });
         return jsonObject;
@@ -148,15 +177,25 @@ class EasySyncBaseModel {
 
         columns.forEach(definition => {
             let newColumn = Object.assign({}, definition);
-            newColumn.props = [];
-            if (definition.ai) {
-                newColumn.props.push("ai");
-            }
-            if (definition.pk) {
-                newColumn.props.push("pk");
-            }
-            if (definition.type === EasySync.TYPES.JSON) {
-                newColumn.type = EasySync.TYPES.STRING;
+            if (!EasySync.isRelationship(definition.type)) {
+                newColumn.props = [];
+                if (definition.ai) {
+                    newColumn.props.push("ai");
+                }
+                if (definition.pk) {
+                    newColumn.props.push("pk");
+                }
+                if (definition.type === EasySync.TYPES.JSON) {
+                    newColumn.type = EasySync.TYPES.STRING;
+                }
+            } else {
+                if (definition.type === EasySync.TYPES.ONE_TO_MANY || definition.type === EasySync.TYPES.MANY_TO_MANY) {
+                    let target = EasySync.TYPES.INTEGER+"[]";
+                    newColumn.type = target;
+                    // if (definition.as){
+                    //     newColumn.key =
+                    // }
+                }
             }
             newColumns.push(newColumn);
         });
@@ -182,11 +221,17 @@ class EasySyncBaseModel {
         jsonObjects.forEach((jsonObject, index) => {
             let model = (models.length > index) ? models[index] : new this();
             columns.forEach(column => {
-                if (jsonObject[column.key] !== undefined){
+                if (jsonObject[column.key] !== undefined) {
                     let setterName = ["set", column.key.substr(0, 1).toUpperCase(), column.key.substr(1)].join('');
+                    if (column.type === EasySync.TYPES.MANY_TO_MANY || column.type === EasySync.TYPES.ONE_TO_MANY) {
+                        setterName += "s";
+                    }
                     if (typeof model[setterName] === "function") {
-                        if (column.type === EasySync.TYPES.JSON && typeof jsonObject[column.key] === "string"){
+                        if (column.type === EasySync.TYPES.JSON && typeof jsonObject[column.key] === "string") {
                             jsonObject[column.key] = JSON.parse(jsonObject[column.key]);
+                        }
+                        if (EasySync.isRelationship(column.type)) {
+                            jsonObject[column.key] = this.relationships[column.key].targetModel._inflate(jsonObject[column.key]);//change to model
                         }
                         model[setterName](jsonObject[column.key]);
                     }
@@ -200,8 +245,31 @@ class EasySyncBaseModel {
         return models;
     }
 
+    _get(key){
+        let getterName = ["get", key.substr(0, 1).toUpperCase(), key.substr(1)].join('');
+        return this[getterName]();
+    }
+    _set(key, value){
+        let setterName = ["set", key.substr(0, 1).toUpperCase(), key.substr(1)].join('');
+        return this[setterName]();
+    }
+
     toJSON() {
-        return this.constructor._modelToJson(this);
+        let res = this.constructor._modelToJson(this);
+        let {columns} = this.constructor.getTableDefinition();
+        columns.forEach(column => {
+           if (EasySync.isRelationship(column.type)){
+               if (Array.isArray(res[column.key])){
+                   let ids = [];
+                   res[column.key].forEach(jsonModel => ids.push({id: jsonModel.id}));
+                   res[column.key] = ids;
+               }
+               else {
+                   res[column.key] = res[column.key].id;
+               }
+           }
+        });
+        return res;
     }
 }
 

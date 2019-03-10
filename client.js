@@ -1,10 +1,18 @@
 import { NanoSQLWrapper, Helper, App, BaseModel, DataManager } from 'cordova-sites';
 
-class EasySync{
-    static addModel(model){
+class EasySync {
+    static addModel(model) {
         EasySync._models.push(model);
     }
+
+    static isRelationship(type) {
+        return (type === EasySync.TYPES.ONE_TO_ONE ||
+            type === EasySync.TYPES.ONE_TO_MANY ||
+            type === EasySync.TYPES.MANY_TO_ONE ||
+            type === EasySync.TYPES.MANY_TO_MANY)
+    }
 }
+
 EasySync._models = [];
 EasySync.TYPES = {
     JSON: "json",
@@ -12,6 +20,10 @@ EasySync.TYPES = {
     STRING: "string",
     DATE: "timeId",
     BOOLEAN: "bool",
+    ONE_TO_ONE: "oneToOne",
+    ONE_TO_MANY: "oneToMany",
+    MANY_TO_ONE: "manyToOne",
+    MANY_TO_MANY: "manyToMany"
 };
 
 class EasySyncBaseModel {
@@ -94,16 +106,33 @@ class EasySyncBaseModel {
         return this.constructor.saveModel(this);
     }
 
+    static _modelsToJson(models) {
+        let jsonArray = [];
+        models.forEach(model => jsonArray.push(this._modelToJson(model)));
+        return jsonArray;
+    }
+
     static _modelToJson(model) {
+        if (Array.isArray(model)) {
+            return this._modelsToJson(model);
+        }
+
         let {columns} = this.getTableDefinition();
         let jsonObject = {};
         columns.forEach(column => {
             let getterName = ["get", column.key.substr(0, 1).toUpperCase(), column.key.substr(1)].join('');
+            if (column.type === EasySync.TYPES.MANY_TO_MANY || column.type === EasySync.TYPES.ONE_TO_MANY) {
+                getterName += "s";
+            }
             if (typeof model[getterName] === "function") {
                 jsonObject[column.key] = model[getterName]();
                 if (column.type === EasySync.TYPES.JSON) {
                     jsonObject[column.key] = JSON.stringify(jsonObject[column.key]);
                 }
+                if (EasySync.isRelationship(column.type)) {
+                    jsonObject[column.key] = this.relationships[column.key].targetModel._modelToJson(jsonObject[column.key]);
+                }
+
             }
         });
         return jsonObject;
@@ -150,15 +179,25 @@ class EasySyncBaseModel {
 
         columns.forEach(definition => {
             let newColumn = Object.assign({}, definition);
-            newColumn.props = [];
-            if (definition.ai) {
-                newColumn.props.push("ai");
-            }
-            if (definition.pk) {
-                newColumn.props.push("pk");
-            }
-            if (definition.type === EasySync.TYPES.JSON) {
-                newColumn.type = EasySync.TYPES.STRING;
+            if (!EasySync.isRelationship(definition.type)) {
+                newColumn.props = [];
+                if (definition.ai) {
+                    newColumn.props.push("ai");
+                }
+                if (definition.pk) {
+                    newColumn.props.push("pk");
+                }
+                if (definition.type === EasySync.TYPES.JSON) {
+                    newColumn.type = EasySync.TYPES.STRING;
+                }
+            } else {
+                if (definition.type === EasySync.TYPES.ONE_TO_MANY || definition.type === EasySync.TYPES.MANY_TO_MANY) {
+                    let target = EasySync.TYPES.INTEGER+"[]";
+                    newColumn.type = target;
+                    // if (definition.as){
+                    //     newColumn.key =
+                    // }
+                }
             }
             newColumns.push(newColumn);
         });
@@ -184,11 +223,17 @@ class EasySyncBaseModel {
         jsonObjects.forEach((jsonObject, index) => {
             let model = (models.length > index) ? models[index] : new this();
             columns.forEach(column => {
-                if (jsonObject[column.key] !== undefined){
+                if (jsonObject[column.key] !== undefined) {
                     let setterName = ["set", column.key.substr(0, 1).toUpperCase(), column.key.substr(1)].join('');
+                    if (column.type === EasySync.TYPES.MANY_TO_MANY || column.type === EasySync.TYPES.ONE_TO_MANY) {
+                        setterName += "s";
+                    }
                     if (typeof model[setterName] === "function") {
-                        if (column.type === EasySync.TYPES.JSON && typeof jsonObject[column.key] === "string"){
+                        if (column.type === EasySync.TYPES.JSON && typeof jsonObject[column.key] === "string") {
                             jsonObject[column.key] = JSON.parse(jsonObject[column.key]);
+                        }
+                        if (EasySync.isRelationship(column.type)) {
+                            jsonObject[column.key] = this.relationships[column.key].targetModel._inflate(jsonObject[column.key]);//change to model
                         }
                         model[setterName](jsonObject[column.key]);
                     }
@@ -202,8 +247,31 @@ class EasySyncBaseModel {
         return models;
     }
 
+    _get(key){
+        let getterName = ["get", key.substr(0, 1).toUpperCase(), key.substr(1)].join('');
+        return this[getterName]();
+    }
+    _set(key, value){
+        let setterName = ["set", key.substr(0, 1).toUpperCase(), key.substr(1)].join('');
+        return this[setterName]();
+    }
+
     toJSON() {
-        return this.constructor._modelToJson(this);
+        let res = this.constructor._modelToJson(this);
+        let {columns} = this.constructor.getTableDefinition();
+        columns.forEach(column => {
+           if (EasySync.isRelationship(column.type)){
+               if (Array.isArray(res[column.key])){
+                   let ids = [];
+                   res[column.key].forEach(jsonModel => ids.push({id: jsonModel.id}));
+                   res[column.key] = ids;
+               }
+               else {
+                   res[column.key] = res[column.key].id;
+               }
+           }
+        });
+        return res;
     }
 }
 
@@ -219,12 +287,47 @@ class EasySyncClientDb extends NanoSQLWrapper {
      * @override
      */
     setupDatabase() {
+        this._easySyncModels = {};
         EasySyncClientDb._easySync._models.forEach(model => {
             Object.setPrototypeOf(model, EasySyncBaseModel);
+            this._easySyncModels[model.getModelName()] = model;
             this.declareModel(model.getModelName(), model.getTableSchema());
         });
         EasySyncClientDb._models.forEach(model => {
             this.declareModel(model.getModelName(), model.getTableSchema());
+        });
+
+        Object.keys(this._easySyncModels).forEach(modelName => {
+            let model = this._easySyncModels[modelName];
+            model.relationships = {};
+
+            let {columns} = model.getTableDefinition();
+            columns.forEach((column, i) => {
+                if (EasySync.isRelationship(column.type)) {
+
+                    if (!column["target"]) {
+                        column["target"] = column.key;
+                    }
+
+                    let target = column["target"];
+                    let targetModel = this._easySyncModels[target];
+
+                    model.relationships[column.key] = {
+                        targetModel: targetModel
+                    };
+
+                    // switch (column.type) {
+                        // case EasySync.TYPES.MANY_TO_MANY: {
+                        //     this._models[modelName].sequelizeModelDefinition.belongsToMany(targetModel.sequelizeModelDefinition, definition);
+                        //     break;
+                        // }
+                        // case EasySync.TYPES.ONE_TO_MANY: {
+                        //     this._models[modelName].sequelizeModelDefinition.hasMany(targetModel.sequelizeModelDefinition, definition);
+                        //     break;
+                        // }
+                    // }
+                }
+            });
         });
     }
 
@@ -235,10 +338,11 @@ class EasySyncClientDb extends NanoSQLWrapper {
         return EasySyncClientDb._instance;
     }
 
-    static addModel(model){
+    static addModel(model) {
         this._models.push(model);
     }
 }
+
 EasySyncClientDb._models = [];
 EasySyncClientDb._easySync = null;
 EasySyncClientDb._instance = null;
@@ -253,6 +357,7 @@ class LastSyncDates extends BaseModel{
         super();
         this._model = "";
         this._lastSynced = new Date(0);
+        this._where = "";
     }
 
     getModel(){
@@ -320,6 +425,7 @@ class SyncJob {
         let upsertPromises = [];
 
         let shouldAskAgain = false;
+        let relationshipModels = {};
         do {
             shouldAskAgain = false;
             results = await SyncJob._fetchModel(requestQuery, offset);
@@ -335,41 +441,12 @@ class SyncJob {
                 });
             }
             let newRequestQuery = {};
-            modelNames.forEach((name, i) => {
-                let modelRes = results["models"][name];
-                if (modelRes) {
-                    let deletedModelsIds = [];
-                    let changedModels = [];
-
-                    modelRes["entities"].forEach(entity => {
-                        if (entity.deleted) {
-                            deletedModelsIds.push(entity.id);
-                        } else {
-                            changedModels.push(entity);
-                        }
-                    });
-
-                    upsertPromises.push(keyedModelClasses[name].getTable().query("upsert", changedModels).exec().then(async res => {
-                        return {
-                            "model": name,
-                            "entities": await modelClasses[i]._inflate(res[0]["affectedRows"]),
-                            "deleted": false
-                        };
-                    }));
-                    upsertPromises.push(keyedModelClasses[name].getTable().query("delete").where(["id", "IN", deletedModelsIds]).exec().then(async res => {
-                        return {
-                            "model": name,
-                            "entities": await modelClasses[i]._inflate(res[0]["affectedRows"]),
-                            "deleted": true
-                        };
-                    }));
-
-                    if (modelRes.shouldAskAgain) {
-                        shouldAskAgain = true;
-                        newRequestQuery[name] = {};
-                        if (requestQuery[name].lastSynced) {
-                            newRequestQuery[name].lastSynced = requestQuery[name].lastSynced;
-                        }
+            modelNames.forEach((name) => {
+                if (this._processModelResult(results["models"][name], keyedModelClasses[name], upsertPromises, relationshipModels)) {
+                    shouldAskAgain = true;
+                    newRequestQuery[name] = {};
+                    if (requestQuery[name].lastSynced) {
+                        newRequestQuery[name].lastSynced = requestQuery[name].lastSynced;
                     }
                 }
             });
@@ -377,6 +454,7 @@ class SyncJob {
         } while (shouldAskAgain);
 
         results = await Promise.all(upsertPromises);
+
 
         let lastSyncPromises = [];
         Object.keys(lastSyncModels).forEach(lastSyncModelName => {
@@ -389,17 +467,80 @@ class SyncJob {
             if (!finalRes[res.model]) {
                 finalRes[res.model] = {
                     "deleted": [],
-                    "changed":[]
+                    "changed": []
                 };
             }
             if (res.deleted) {
                 finalRes[res.model]["deleted"] = finalRes[res.model]["deleted"].concat(res.entities);
-            }
-            else {
+            } else {
                 finalRes[res.model]["changed"] = finalRes[res.model]["changed"].concat(res.entities);
             }
         });
         return finalRes;
+    }
+
+    _processModelResult(modelRes, modelClass, upsertPromises, relationshipModels) {
+        let shouldAskAgain = false;
+        if (modelRes) {
+            let name = modelClass.getModelName();
+            let deletedModelsIds = [];
+            let changedModels = [];
+
+            modelRes["entities"].forEach(entity => {
+                if (entity.deleted) {
+                    deletedModelsIds.push(entity.id);
+                } else {
+                    changedModels.push(entity);
+                }
+            });
+
+            let {columns} = modelClass.getTableDefinition();
+            columns.forEach(column => {
+                // if (EasySync.isRelationship(column.type)) {
+                //     if (!relationshipModels[name]){
+                //         relationshipModels[name] = {};
+                //     }
+                //     changedModels.forEach(model => {
+                //         if (!relationshipModels[name][model.getId()]){
+                //             relationshipModels[name][model.getId()] = {};
+                //         }
+                //
+                //         let getterName = column.key;
+                //         if (column.type === EasySync.TYPES.MANY_TO_MANY || column.type === EasySync.TYPES.ONE_TO_MANY){
+                //             getterName += "s";
+                //         }
+                //         relationshipModels[name][model.getId()][column.key] = model._get(getterName);
+                //         model._set(getterName, null);
+                //     });
+                // }
+            });
+
+            upsertPromises.push(modelClass.getTable().query("upsert", changedModels).exec().then(res => {
+                return {
+                    "model": name,
+                    "entities": modelClass._inflate(res[0]["affectedRows"]),
+                    "deleted": false
+                };
+            }));
+            upsertPromises.push(modelClass.getTable().query("delete").where(["id", "IN", deletedModelsIds]).exec().then(res => {
+                return {
+                    "model": name,
+                    "entities": modelClass._inflate(res[0]["affectedRows"]),
+                    "deleted": true
+                };
+            }));
+
+            if (modelRes.shouldAskAgain) {
+                shouldAskAgain = true;
+            }
+        }
+        return shouldAskAgain
+    }
+
+    async _saveRelationships(relationshipModels, modelClasses){
+        Object.keys(relationshipModels).forEach(modelName => {
+
+        });
     }
 
     static async _fetchModel(query, offset) {
