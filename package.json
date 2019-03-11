@@ -9,14 +9,15 @@
   "author": "Silas Günther",
   "dependencies": {
     "cordova-sites": "file:../cordova-sites",
+    "cordova-sites-database": "file:../cordova-sites-database",
     "express": "^4.16.4",
-    "sequelize": "^4.42.0"
+    "typeorm": "^0.2.14"
   },
   "devDependencies": {
-    "rollup": "^1.2.2",
+    "rollup": "^1.6.0",
     "rollup-plugin-commonjs": "^9.2.0",
-    "rollup-plugin-json": "^3.1.0",
+    "rollup-plugin-html-import-file-path": "git+https://github.com/Ainias/rollup-plugin-html-import-file-path.git",
     "rollup-plugin-import-file-path": "git+https://github.com/Ainias/rollup-plugin-import-file-path.git",
-    "rollup-plugin-html-import-file-path": "git+https://github.com/Ainias/rollup-plugin-html-import-file-path.git"
+    "rollup-plugin-json": "^3.1.0"
   }
 }

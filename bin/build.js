@@ -17,8 +17,7 @@ const fileOptions = [{
         format: 'es',
         file: path.resolve(process.cwd(), 'client.js'),
         nameFile: path.resolve(process.cwd(), 'client.names.json'),
-    }
-
+    },
 },
 //     {
 //     input: [
@@ -116,14 +115,13 @@ async function buildEntryPoints(fileOption, target) {
 }
 
 async function build() {
-
     let buildPromise = Promise.resolve();
     fileOptions.forEach(async (fileOption, i) => {
         buildPromise = buildPromise.then(async () => {
             await buildEntryPoints(fileOption);
             console.log("doing ", i, "...");
-
-            const bundle = await rollup.rollup(options);
+            let currentOptions = Object.assign({}, options, fileOption.options);
+            const bundle = await rollup.rollup(currentOptions);
 
             // or write the bundle to disk
             await bundle.write(fileOption.output);

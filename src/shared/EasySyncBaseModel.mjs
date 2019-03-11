@@ -1,187 +1,33 @@
-import {EasySync} from "./EasySync";
+import {BaseModel, BaseDatabase} from "cordova-sites-database";
 
-export class EasySyncBaseModel {
+export class EasySyncBaseModel extends BaseModel {
     constructor() {
-        this._id = null;
-        this._createdAt = new Date();
-        this._updatedAt = new Date();
-        this._version = 1;
-        this._deleted = false;
+        super();
+        this.createdAt = new Date();
+        this.updatedAt = new Date();
+        this.version = 1;
+        this.deleted = false;
     }
 
-    getId() {
-        return this._id;
+    static getColumnDefinitions() {
+        let columns = super.getColumnDefinitions();
+        columns["createdAt"] = {
+            type: BaseDatabase.TYPES.DATE
+        };
+        columns["updatedAt"] = {
+            type: BaseDatabase.TYPES.DATE
+        };
+        columns["version"] = {
+            type: BaseDatabase.TYPES.INTEGER
+        };
+        columns["deleted"] = {
+            type: BaseDatabase.TYPES.BOOLEAN
+        };
+        return columns;
     }
 
-    setId(id) {
-        this._id = id;
-    }
-
-    /**
-     * @returns {Date}
-     */
-    getCreatedAt() {
-        return this._createdAt;
-    }
-
-    /**
-     * @param {Date} createdAt
-     *
-     */
-    setCreatedAt(createdAt) {
-        this._createdAt = createdAt;
-    }
-
-    /**
-     * @returns {Date}
-     */
-    getUpdatedAt() {
-        return this._updatedAt;
-    }
-
-    /**
-     * @param {Date} lastUpdated
-     */
-    setUpdatedAt(lastUpdated) {
-        this.updatedAt = lastUpdated;
-    }
-
-    /**
-     * @returns {number}
-     */
-    getVersion() {
-        return this._version;
-    }
-
-    /**
-     * @param {number} version
-     */
-    setVersion(version) {
-        this._version = version;
-    }
-
-    /**
-     * @returns {boolean}
-     */
-    getDeleted() {
-        return this._deleted;
-    }
-
-    /**
-     * @param {boolean} deleted
-     */
-    setDeleted(deleted) {
-        this._deleted = (deleted === true);
-    }
-
-    async save() {
-        //Wenn direkt BaseModel.saveModel aufgerufen wird, später ein Fehler geschmissen (_method not defined), da der
-        // falsche Kontext am Objekt existiert
-        return this.constructor.saveModel(this);
-    }
-
-    static _modelsToJson(models) {
-        let jsonArray = [];
-        models.forEach(model => jsonArray.push(this._modelToJson(model)));
-        return jsonArray;
-    }
-
-    static _modelToJson(model) {
-        if (Array.isArray(model)) {
-            return this._modelsToJson(model);
-        }
-
-        let {columns} = this.getTableDefinition();
-        let jsonObject = {};
-        columns.forEach(column => {
-            let getterName = ["get", column.key.substr(0, 1).toUpperCase(), column.key.substr(1)].join('');
-            if (column.type === EasySync.TYPES.MANY_TO_MANY || column.type === EasySync.TYPES.ONE_TO_MANY) {
-                getterName += "s";
-            }
-            if (typeof model[getterName] === "function") {
-                jsonObject[column.key] = model[getterName]();
-                if (column.type === EasySync.TYPES.JSON) {
-                    jsonObject[column.key] = JSON.stringify(jsonObject[column.key]);
-                }
-                if (EasySync.isRelationship(column.type)) {
-                    jsonObject[column.key] = this.relationships[column.key].targetModel._modelToJson(jsonObject[column.key])
-                }
-
-            }
-        });
-        return jsonObject;
-    }
-
-    static getTableDefinition() {
-        return {
-            name: this.getModelName(),
-            columns: [
-                {key: "id", type: EasySync.TYPES.INTEGER, ai: true, pk: true, allowNull: false},
-                {key: "createdAt", type: EasySync.TYPES.DATE},
-                {key: "updatedAt", type: EasySync.TYPES.DATE},
-                {key: "version", type: EasySync.TYPES.INTEGER},
-                {key: "deleted", type: EasySync.TYPES.BOOLEAN},
-            ]
-        }
-    }
-
-    /**
-     * @returns {null|string}
-     */
-    static getModelName() {
-        if (this.modelName) {
-            return this.modelName;
-        } else {
-            return this.name;
-        }
-    }
-
-    /**
-     * @param {string} name
-     */
-    static setModelName(name) {
-        this.modelName = name;
-    }
-
-    static _newModel() {
-        return new this();
-    }
-
-    static getTableSchema() {
-        let {columns} = this.getTableDefinition();
-        let newColumns = [];
-
-        columns.forEach(definition => {
-            let newColumn = Object.assign({}, definition);
-            if (!EasySync.isRelationship(definition.type)) {
-                newColumn.props = [];
-                if (definition.ai) {
-                    newColumn.props.push("ai");
-                }
-                if (definition.pk) {
-                    newColumn.props.push("pk");
-                }
-                if (definition.type === EasySync.TYPES.JSON) {
-                    newColumn.type = EasySync.TYPES.STRING;
-                }
-            } else {
-                if (definition.type === EasySync.TYPES.ONE_TO_MANY || definition.type === EasySync.TYPES.MANY_TO_MANY) {
-                    let target = EasySync.TYPES.INTEGER+"[]";
-                    newColumn.type = target;
-                }
-            }
-            newColumns.push(newColumn);
-        });
-        return newColumns;
-    }
-
-    static _getDBInstance() {
-        return EasySyncBaseModel.dbInstance;
-    }
-
-    static _inflate(jsonObjects, models) {
+    static async _fromJson(jsonObjects, models, includeRelations) {
         models = models || [];
-
         let isArray = Array.isArray(jsonObjects);
         if (!isArray) {
             jsonObjects = [jsonObjects];
@@ -189,61 +35,78 @@ export class EasySyncBaseModel {
         if (!Array.isArray(models)) {
             models = [models];
         }
-
-        let {columns} = this.getTableDefinition();
+        let relations = this.getRelationDefinitions();
+        let loadPromises = [];
         jsonObjects.forEach((jsonObject, index) => {
-            let model = (models.length > index) ? models[index] : new this();
-            columns.forEach(column => {
-                if (jsonObject[column.key] !== undefined) {
-                    let setterName = ["set", column.key.substr(0, 1).toUpperCase(), column.key.substr(1)].join('');
-                    if (column.type === EasySync.TYPES.MANY_TO_MANY || column.type === EasySync.TYPES.ONE_TO_MANY) {
-                        setterName += "s";
-                    }
-                    if (typeof model[setterName] === "function") {
-                        if (column.type === EasySync.TYPES.JSON && typeof jsonObject[column.key] === "string") {
-                            jsonObject[column.key] = JSON.parse(jsonObject[column.key]);
-                        }
-                        if (EasySync.isRelationship(column.type)) {
-                            jsonObject[column.key] = this.relationships[column.key].targetModel._inflate(jsonObject[column.key])//change to model
-                        }
-                        model[setterName](jsonObject[column.key]);
-                    }
+            loadPromises.push(new Promise(async resolve => {
+                let model = null;
+                if (models.length > index) {
+                    model = models[index];
+                } else if (jsonObject.id !== null) {
+                    model = await this.findById(jsonObject.id, this.getRelations());
                 }
-            });
-            models[index] = model;
+
+                if (model === null) {
+                    model = new this();
+                }
+
+                if (!jsonObject.version) {
+                    jsonObject.version = 1;
+                }
+                models[index] = Object.assign(model, jsonObject);
+                Object.keys(relations).forEach(relationName => {
+                    let values = models[index][relationName];
+                    if (typeof values === "number" || (Array.isArray(values) && values.length >= 1 && typeof values[0] === "number")) {
+                        if (includeRelations === true) {
+                            let loadPromise = null;
+                            if (Array.isArray(values)) {
+                                loadPromise = BaseDatabase.getModel(relations[relationName].target).findByIds(values);
+                            } else {
+                                loadPromise = BaseDatabase.getModel(relations[relationName].target).findById(values);
+                            }
+                            loadPromises.push(loadPromise.then(value => models[index][relationName] = value));
+                        } else if (includeRelations === false) {
+                            if (relations[relationName].type === "many-to-many" || relations[relationName].type === "one-to-many") {
+                                models[index][relationName] = [];
+                            } else {
+                                models[index][relationName] = null;
+                            }
+                        }
+                    }
+                });
+                resolve();
+            }));
         });
+        await Promise.all(loadPromises);
         if (!isArray) {
             models = (models.length > 0) ? models[0] : null;
         }
         return models;
     }
 
-    _get(key){
-        let getterName = ["get", key.substr(0, 1).toUpperCase(), key.substr(1)].join('');
-        return this[getterName]();
-    }
-    _set(key, value){
-        let setterName = ["set", key.substr(0, 1).toUpperCase(), key.substr(1)].join('');
-        return this[setterName]();
-    }
+    toJSON(includeFull) {
+        let relations = this.constructor.getRelationDefinitions();
+        let columns = this.constructor.getColumnDefinitions();
 
-    toJSON() {
-        let res = this.constructor._modelToJson(this);
-        let {columns} = this.constructor.getTableDefinition();
-        columns.forEach(column => {
-           if (EasySync.isRelationship(column.type)){
-               if (Array.isArray(res[column.key])){
-                   let ids = [];
-                   res[column.key].forEach(jsonModel => ids.push({id: jsonModel.id}));
-                   res[column.key] = ids;
-               }
-               else {
-                   res[column.key] = res[column.key].id;
-               }
-           }
+        let obj = {};
+        Object.keys(columns).forEach(attribute => {
+            obj[attribute] = this[attribute];
         });
-        return res;
+        Object.keys(relations).forEach(relationName => {
+            if (includeFull === true) {
+                obj[relationName] = this[relationName];
+            } else {
+                if (Array.isArray(this[relationName])) {
+                    let ids = [];
+                    this[relationName].forEach(child => ids.push(child.id));
+                    obj[relationName] = ids;
+                } else if (this[relationName] instanceof BaseModel) {
+                    obj[relationName] = this[relationName].id;
+                } else {
+                    obj[relationName] = null;
+                }
+            }
+        });
+        return obj;
     }
 }
-
-EasySyncBaseModel.dbInstance = null;

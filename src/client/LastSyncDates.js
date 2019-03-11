@@ -1,44 +1,36 @@
-import {BaseModel} from "cordova-sites";
-import {EasySyncClientDb} from "./EasySyncClientDb";
+import {BaseDatabase, BaseModel} from "cordova-sites-database";
 
 export class LastSyncDates extends BaseModel{
     constructor() {
         super();
-        this._model = "";
-        this._lastSynced = new Date(0);
-        this._where = "";
+        this.model = "";
+        this.lastSynced = new Date(0);
+        this.where = {};
     }
 
     getModel(){
-        return this._model;
+        return this.model;
     }
 
     setModel(model){
-        this._model = model;
+        this.model = model;
     }
 
     getLastSynced(){
-        return this._lastSynced;
+        return this.lastSynced;
     }
 
     setLastSynced(lastSynced){
-        this._lastSynced = lastSynced;
+        this.lastSynced = lastSynced;
     }
 
-    static getModelName() {
-        return "easySyncLastSyncedDates";
-    }
-
-    static _getDBInstance(){
-        return EasySyncClientDb.getInstance();
-    }
-
-    static getTableSchema() {
-        return [
-            {key: "id", type: "int", props: ["pk", "ai"]}, //pk = primary Key, ai = auto_increment
-            {key: "model", type: "string"},
-            {key: "lastSynced", type: "date"},
-        ]
+    static getColumnDefinitions() {
+        let columns = BaseModel.getColumnDefinitions();
+        columns.model = {type: BaseDatabase.TYPES.STRING};
+        columns.lastSynced= {type: BaseDatabase.TYPES.DATE};
+        columns.where= {type: BaseDatabase.TYPES.JSON};
+        return columns;
     }
 }
-EasySyncClientDb.addModel(LastSyncDates);
+LastSyncDates.SCHEMA_NAME="easy-sync-last-sync-dates";
+BaseDatabase.addModel(LastSyncDates);

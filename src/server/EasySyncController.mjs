@@ -1,23 +1,21 @@
 import {EasySyncServerDb} from "./EasySyncServerDb";
-import Sequelize from 'sequelize';
-
-const Op = Sequelize.Op;
+import {BaseDatabase} from "cordova-sites-database";
 
 const MAX_MODELS_PER_RUN = 200;
 
 export class EasySyncController {
 
-    static async _syncModel(Model, lastSynced, offset, where) {
+    static async _syncModel(model, lastSynced, offset, where) {
         let dateLastSynced = new Date(parseInt(lastSynced || 0));
         let newDateLastSynced = new Date().getTime();
         offset = parseInt(offset);
 
         where = where || {};
         where = Object.assign(where, {
-            "updatedAt": {[Op.gte]: dateLastSynced}
+            "updatedAt": BaseDatabase.typeorm.MoreThan(dateLastSynced),
         });
 
-        let entities = await Model.select(where, null, MAX_MODELS_PER_RUN, offset, true);
+        let entities = await model.find(where, null, MAX_MODELS_PER_RUN, offset, model.getRelations());
 
         return {
             "newLastSynced": newDateLastSynced,
@@ -28,18 +26,15 @@ export class EasySyncController {
     }
 
     static async sync(req, res) {
-
-        let db = await EasySyncServerDb.getInstance();
-
         let requestedModels = {};
         let modelClasses = {};
         if (req.query.models) {
             requestedModels = JSON.parse(req.query.models);
             Object.keys(requestedModels).forEach(model => {
-                modelClasses[model] = db.getModel(model);
+                modelClasses[model] = EasySyncServerDb.getModel(model);
             });
         } else {
-            modelClasses = db.getModel();
+            modelClasses = EasySyncServerDb.getModel();
             Object.keys(modelClasses).forEach(name => requestedModels[name] = {});
         }
 
@@ -62,7 +57,7 @@ export class EasySyncController {
             if (res.shouldAskAgain) {
                 result.nextOffset = result.nextOffset < 0 ? res.nextOffset : Math.min(res.nextOffset, result.nextOffset);
             }
-            result.models[modelClasses[modelNames[i]].getModelName()] = res;
+            result.models[modelClasses[modelNames[i]].getSchemaName()] = res;
         });
 
         res.json(result);
@@ -75,15 +70,15 @@ export class EasySyncController {
             modelData = [modelData];
         }
 
-        let db = await EasySyncServerDb.getInstance();
-        let ModelClass = db.getModel(modelName);
-        let models = ModelClass._inflate(modelData);
+        // let db = await EasySyncServerDb.getInstance();
+        let model = EasySyncServerDb.getModel(modelName);
+        let entities = await model._fromJson(modelData, undefined, true);
 
         let savePromises = [];
-        models.forEach(model => {
+        entities.forEach(model => {
             savePromises.push(model.save());
         });
         await Promise.all(savePromises);
-        res.json(models);
+        res.json(entities);
     }
 }

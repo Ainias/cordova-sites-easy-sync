@@ -1,11 +1,11 @@
 import {LastSyncDates} from "./LastSyncDates";
-import {DataManager, Helper} from "cordova-sites";
+import {DataManager} from "cordova-sites";
 import {EasySyncClientDb} from "./EasySyncClientDb";
-import {EasySync} from "../shared/EasySync";
+import {BaseDatabase} from "cordova-sites-database";
 
 export class SyncJob {
     async syncAll() {
-        return this.sync(EasySyncClientDb._models);
+        return this.sync(Object.values(EasySyncClientDb._models));
     }
 
     async sync(modelClasses) {
@@ -14,13 +14,16 @@ export class SyncJob {
 
         let keyedModelClasses = {};
         modelClasses.forEach(async cl => {
-            modelNames.push(cl.getModelName());
-            requestQuery[cl.getModelName()] = {};
-            keyedModelClasses[cl.getModelName()] = cl;
+            modelNames.push(cl.getSchemaName());
+            requestQuery[cl.getSchemaName()] = {};
+            keyedModelClasses[cl.getSchemaName()] = cl;
         });
 
         let lastSyncModels = {};
-        let lastSyncModelsArray = await LastSyncDates.select(["model", "IN", modelNames]);
+        let lastSyncModelsArray = await LastSyncDates.find({
+            "model":
+                BaseDatabase.typeorm.In(modelNames)
+        });
         lastSyncModelsArray.forEach(lastSyncModel => {
             requestQuery[lastSyncModel.getModel()]["lastSynced"] = lastSyncModel.getLastSynced().getTime();
             lastSyncModels[lastSyncModel.getModel()] = lastSyncModel;
@@ -31,7 +34,7 @@ export class SyncJob {
         let results = [];
         let offset = 0;
 
-        let upsertPromises = [];
+        let savePromises = [];
 
         let shouldAskAgain = false;
         let relationshipModels = {};
@@ -39,7 +42,7 @@ export class SyncJob {
             shouldAskAgain = false;
             results = await SyncJob._fetchModel(requestQuery, offset);
             offset = results["nextOffset"];
-            if (Helper.isNull(newLastSynced)) {
+            if (!newLastSynced) {
                 newLastSynced = results["newLastSynced"];
                 modelNames.forEach(name => {
                     if (!lastSyncModels[name]) {
@@ -51,7 +54,7 @@ export class SyncJob {
             }
             let newRequestQuery = {};
             modelNames.forEach((name) => {
-                if (this._processModelResult(results["models"][name], keyedModelClasses[name], upsertPromises, relationshipModels)) {
+                if (this._processModelResult(results["models"][name], keyedModelClasses[name], savePromises, relationshipModels)) {
                     shouldAskAgain = true;
                     newRequestQuery[name] = {};
                     if (requestQuery[name].lastSynced) {
@@ -62,8 +65,9 @@ export class SyncJob {
             requestQuery = newRequestQuery;
         } while (shouldAskAgain);
 
-        results = await Promise.all(upsertPromises);
+        results = await Promise.all(savePromises);
 
+        //TODO ids aflösen
 
         let lastSyncPromises = [];
         Object.keys(lastSyncModels).forEach(lastSyncModelName => {
@@ -73,25 +77,27 @@ export class SyncJob {
 
         let finalRes = {};
         results.forEach(res => {
-            if (!finalRes[res.model]) {
-                finalRes[res.model] = {
-                    "deleted": [],
-                    "changed": []
-                };
-            }
-            if (res.deleted) {
-                finalRes[res.model]["deleted"] = finalRes[res.model]["deleted"].concat(res.entities);
-            } else {
-                finalRes[res.model]["changed"] = finalRes[res.model]["changed"].concat(res.entities);
+            if (res) {
+                if (!finalRes[res.model]) {
+                    finalRes[res.model] = {
+                        "deleted": [],
+                        "changed": []
+                    };
+                }
+                if (res.deleted) {
+                    finalRes[res.model]["deleted"] = finalRes[res.model]["deleted"].concat(res.entities);
+                } else {
+                    finalRes[res.model]["changed"] = finalRes[res.model]["changed"].concat(res.entities);
+                }
             }
         });
         return finalRes;
     }
 
-    _processModelResult(modelRes, modelClass, upsertPromises, relationshipModels) {
+    _processModelResult(modelRes, modelClass, savePromises, relationshipModels) {
         let shouldAskAgain = false;
         if (modelRes) {
-            let name = modelClass.getModelName();
+            let name = modelClass.getSchemaName();
             let deletedModelsIds = [];
             let changedModels = [];
 
@@ -103,38 +109,22 @@ export class SyncJob {
                 }
             });
 
-            let {columns} = modelClass.getTableDefinition();
-            columns.forEach(column => {
-                // if (EasySync.isRelationship(column.type)) {
-                //     if (!relationshipModels[name]){
-                //         relationshipModels[name] = {};
-                //     }
-                //     changedModels.forEach(model => {
-                //         if (!relationshipModels[name][model.getId()]){
-                //             relationshipModels[name][model.getId()] = {};
-                //         }
-                //
-                //         let getterName = column.key;
-                //         if (column.type === EasySync.TYPES.MANY_TO_MANY || column.type === EasySync.TYPES.ONE_TO_MANY){
-                //             getterName += "s";
-                //         }
-                //         relationshipModels[name][model.getId()][column.key] = model._get(getterName);
-                //         model._set(getterName, null);
-                //     });
-                // }
-            });
-
-            upsertPromises.push(modelClass.getTable().query("upsert", changedModels).exec().then(res => {
-                return {
-                    "model": name,
-                    "entities": modelClass._inflate(res[0]["affectedRows"]),
-                    "deleted": false
-                };
+            savePromises.push(modelClass._fromJson(changedModels, undefined, false).then(changedModels => {
+                savePromises.push(EasySyncClientDb.getInstance().saveEntity(changedModels).then(res => {
+                    return {
+                        "model": name,
+                        "entities": res,
+                        "deleted": false
+                    };
+                }).catch(e => {
+                    console.error(e);
+                    return Promise.reject(e)
+                }));
             }));
-            upsertPromises.push(modelClass.getTable().query("delete").where(["id", "IN", deletedModelsIds]).exec().then(res => {
+            savePromises.push(EasySyncClientDb.getInstance().deleteEntity(deletedModelsIds, modelClass).then(res => {
                 return {
                     "model": name,
-                    "entities": modelClass._inflate(res[0]["affectedRows"]),
+                    "entities": res,
                     "deleted": true
                 };
             }));
@@ -144,12 +134,6 @@ export class SyncJob {
             }
         }
         return shouldAskAgain
-    }
-
-    async _saveRelationships(relationshipModels, modelClasses){
-        Object.keys(relationshipModels).forEach(modelName => {
-
-        });
     }
 
     static async _fetchModel(query, offset) {
