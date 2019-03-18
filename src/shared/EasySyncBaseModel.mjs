@@ -42,7 +42,7 @@ export class EasySyncBaseModel extends BaseModel {
                 let model = null;
                 if (models.length > index) {
                     model = models[index];
-                } else if (jsonObject.id !== null) {
+                } else if (jsonObject.id !== null && jsonObject.id !== undefined) {
                     model = await this.findById(jsonObject.id, this.getRelations());
                 }
 

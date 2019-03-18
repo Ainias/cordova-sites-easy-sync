@@ -1,5 +1,5 @@
 import { BaseModel, BaseDatabase } from 'cordova-sites-database';
-import { App, DataManager } from 'cordova-sites';
+import { App, Helper, DataManager } from 'cordova-sites';
 
 class EasySyncBaseModel extends BaseModel {
     constructor() {
@@ -43,7 +43,7 @@ class EasySyncBaseModel extends BaseModel {
                 let model = null;
                 if (models.length > index) {
                     model = models[index];
-                } else if (jsonObject.id !== null) {
+                } else if (jsonObject.id !== null && jsonObject.id !== undefined) {
                     model = await this.findById(jsonObject.id, this.getRelations());
                 }
 
@@ -177,11 +177,14 @@ LastSyncDates.SCHEMA_NAME="easy-sync-last-sync-dates";
 BaseDatabase.addModel(LastSyncDates);
 
 class SyncJob {
-    async syncAll() {
-        return this.sync(Object.values(EasySyncClientDb._models));
-    }
+    // async syncAll() {
+    //     return this.sync(Object.values(EasySyncClientDb._models));
+    // }
 
     async sync(modelClasses) {
+
+        console.log("BaseDatabase", BaseDatabase.typeorm, BaseDatabase === window["baseDB"]);
+
         let modelNames = [];
         let requestQuery = {};
 
@@ -240,7 +243,28 @@ class SyncJob {
 
         results = await Promise.all(savePromises);
 
-        //TODO ids aflösen
+        let relationPromises = [];
+        Object.keys(relationshipModels).forEach(modelClassName => {
+            let relationDefinitions = keyedModelClasses[modelClassName].getRelationDefinitions();
+            Object.keys(relationshipModels[modelClassName]).forEach(id => {
+                let entity = relationshipModels[modelClassName][id]["entity"];
+                let relations = relationshipModels[modelClassName][id]["relations"];
+                Object.keys(relations).forEach(relation => {
+                    let valuePromise = null;
+                    if (Array.isArray(relations[relation])){
+                        valuePromise = keyedModelClasses[relationDefinitions[relation]["target"]].findByIds(relations[relation]);
+                    }
+                    else {
+                        valuePromise = keyedModelClasses[relationDefinitions[relation]["target"]].findById(relations[relation]);
+                    }
+                    relationPromises.push(valuePromise.then(value => {
+                        entity[relation] = value;
+                        return entity.save();
+                    }));
+                });
+            });
+        });
+        await Promise.all(relationPromises);
 
         let lastSyncPromises = [];
         Object.keys(lastSyncModels).forEach(lastSyncModelName => {
@@ -282,8 +306,21 @@ class SyncJob {
                 }
             });
 
-            savePromises.push(modelClass._fromJson(changedModels, undefined, false).then(changedModels => {
-                savePromises.push(EasySyncClientDb.getInstance().saveEntity(changedModels).then(res => {
+            savePromises.push(modelClass._fromJson(changedModels).then(changedEntity => {
+                let relations = modelClass.getRelations();
+                changedEntity.forEach(entity => {
+                    relations.forEach(relation => {
+                        if (entity[relation]){
+                            relationshipModels[name] = Helper.nonNull(relationshipModels[name], {});
+                            relationshipModels[name][entity.id] = Helper.nonNull(relationshipModels[name][entity.id], {});
+                            relationshipModels[name][entity.id]["entity"] = entity;
+                            relationshipModels[name][entity.id]["relations"] = Helper.nonNull(relationshipModels[name][entity.id]["relations"], {});
+                            relationshipModels[name][entity.id]["relations"][relation] = entity[relation];
+                            entity[relation] = null;
+                        }
+                    });
+                });
+                savePromises.push(EasySyncClientDb.getInstance().saveEntity(changedEntity).then(res => {
                     return {
                         "model": name,
                         "entities": res,
