@@ -343,10 +343,10 @@ class SyncJob {
                     "entities": res,
                     "deleted": true
                 };
-            })).catch(e => {
+            }).catch(e => {
                 console.error(e);
                 return Promise.reject(e)
-            });
+            }));
 
             if (modelRes.shouldAskAgain) {
                 shouldAskAgain = true;
