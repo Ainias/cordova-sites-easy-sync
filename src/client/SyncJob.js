@@ -1,7 +1,12 @@
 import {LastSyncDates} from "./LastSyncDates";
 import {DataManager, Helper} from "cordova-sites";
 import {EasySyncClientDb} from "./EasySyncClientDb";
-import {BaseDatabase} from "cordova-sites-database";
+import * as _typeorm from "typeorm";
+
+let typeorm = _typeorm;
+if (typeorm.default) {
+    typeorm = typeorm.default;
+}
 
 export class SyncJob {
     // async syncAll() {
@@ -9,8 +14,6 @@ export class SyncJob {
     // }
 
     async sync(modelClasses) {
-
-        console.log("BaseDatabase", BaseDatabase.typeorm, BaseDatabase === window["baseDB"]);
 
         let modelNames = [];
         let requestQuery = {};
@@ -25,7 +28,7 @@ export class SyncJob {
         let lastSyncModels = {};
         let lastSyncModelsArray = await LastSyncDates.find({
             "model":
-                BaseDatabase.typeorm.In(modelNames)
+                typeorm.In(modelNames)
         });
         lastSyncModelsArray.forEach(lastSyncModel => {
             requestQuery[lastSyncModel.getModel()]["lastSynced"] = lastSyncModel.getLastSynced().getTime();
@@ -78,10 +81,9 @@ export class SyncJob {
                 let relations = relationshipModels[modelClassName][id]["relations"];
                 Object.keys(relations).forEach(relation => {
                     let valuePromise = null;
-                    if (Array.isArray(relations[relation])){
+                    if (Array.isArray(relations[relation])) {
                         valuePromise = keyedModelClasses[relationDefinitions[relation]["target"]].findByIds(relations[relation]);
-                    }
-                    else {
+                    } else {
                         valuePromise = keyedModelClasses[relationDefinitions[relation]["target"]].findById(relations[relation]);
                     }
                     relationPromises.push(valuePromise.then(value => {
@@ -137,7 +139,7 @@ export class SyncJob {
                 let relations = modelClass.getRelations();
                 changedEntity.forEach(entity => {
                     relations.forEach(relation => {
-                        if (entity[relation]){
+                        if (entity[relation]) {
                             relationshipModels[name] = Helper.nonNull(relationshipModels[name], {});
                             relationshipModels[name][entity.id] = Helper.nonNull(relationshipModels[name][entity.id], {});
                             relationshipModels[name][entity.id]["entity"] = entity;
@@ -147,7 +149,9 @@ export class SyncJob {
                         }
                     })
                 });
-                savePromises.push(EasySyncClientDb.getInstance().saveEntity(changedEntity).then(res => {
+
+                return EasySyncClientDb.getInstance().saveEntity(changedEntity).then(res => {
+
                     return {
                         "model": name,
                         "entities": res,
@@ -156,15 +160,19 @@ export class SyncJob {
                 }).catch(e => {
                     console.error(e);
                     return Promise.reject(e)
-                }));
+                });
             }));
             savePromises.push(EasySyncClientDb.getInstance().deleteEntity(deletedModelsIds, modelClass).then(res => {
+
                 return {
                     "model": name,
                     "entities": res,
                     "deleted": true
                 };
-            }));
+            })).catch(e => {
+                console.error(e);
+                return Promise.reject(e)
+            });
 
             if (modelRes.shouldAskAgain) {
                 shouldAskAgain = true;

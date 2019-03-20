@@ -1,5 +1,10 @@
 import {EasySyncServerDb} from "./EasySyncServerDb";
-import {BaseDatabase} from "cordova-sites-database";
+import * as _typeorm from "typeorm";
+
+let typeorm = _typeorm;
+if (typeorm.default){
+    typeorm = typeorm.default;
+}
 
 const MAX_MODELS_PER_RUN = 200;
 
@@ -12,10 +17,9 @@ export class EasySyncController {
 
         where = where || {};
         where = Object.assign(where, {
-            "updatedAt": BaseDatabase.typeorm.MoreThan(dateLastSynced),
+            "updatedAt": typeorm.MoreThan(dateLastSynced),
         });
 
-        console.log(model.getRelations());
         let entities = await model.find(where, null, MAX_MODELS_PER_RUN, offset, model.getRelations());
 
         return {
