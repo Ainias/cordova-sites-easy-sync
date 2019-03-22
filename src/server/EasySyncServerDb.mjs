@@ -1,5 +1,5 @@
 import {BaseDatabase} from "cordova-sites-database";
-import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
+// import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 
 export class EasySyncServerDb extends BaseDatabase {
 
