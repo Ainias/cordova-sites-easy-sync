@@ -110,3 +110,4 @@ export class EasySyncBaseModel extends BaseModel {
         return obj;
     }
 }
+EasySyncBaseModel.CAN_BE_SYNCED = true;

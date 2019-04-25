@@ -2,7 +2,7 @@ import {EasySyncServerDb} from "./EasySyncServerDb";
 import * as _typeorm from "typeorm";
 
 let typeorm = _typeorm;
-if (typeorm.default){
+if (typeorm.default) {
     typeorm = typeorm.default;
 }
 
@@ -11,6 +11,10 @@ const MAX_MODELS_PER_RUN = 200;
 export class EasySyncController {
 
     static async _syncModel(model, lastSynced, offset, where) {
+        if (model.CAN_BE_SYNCED === false) {
+            throw new Error("tried to sync unsyncable model " + model.getSchemaName());
+        }
+
         let dateLastSynced = new Date(parseInt(lastSynced || 0));
         let newDateLastSynced = new Date().getTime();
         offset = parseInt(offset);
@@ -39,8 +43,13 @@ export class EasySyncController {
                 modelClasses[model] = EasySyncServerDb.getModel(model);
             });
         } else {
-            modelClasses = EasySyncServerDb.getModel();
-            Object.keys(modelClasses).forEach(name => requestedModels[name] = {});
+            let allModelClasses = EasySyncServerDb.getModel();
+            Object.keys(allModelClasses).forEach(name => {
+                if (allModelClasses[name].CAN_BE_SYNCED !== false) {
+                    requestedModels[name] = {};
+                    modelClasses[name] = allModelClasses[name];
+                }
+            });
         }
 
         //create lastSynced before the queries to db

@@ -114,21 +114,21 @@ async function buildEntryPoints(fileOption, target) {
     fs.writeFileSync(target, imports);
 }
 
-async function build() {
-    let buildPromise = Promise.resolve();
-    fileOptions.forEach(async (fileOption, i) => {
-        buildPromise = buildPromise.then(async () => {
-            await buildEntryPoints(fileOption);
-            console.log("doing ", i, "...");
-            let currentOptions = Object.assign({}, options, fileOption.options);
-            const bundle = await rollup.rollup(currentOptions);
-
-            // or write the bundle to disk
-            await bundle.write(fileOption.output);
-            fs.unlinkSync(tmpFile);
-        });
-    });
-}
+// async function build() {
+//     let buildPromise = Promise.resolve();
+//     fileOptions.forEach(async (fileOption, i) => {
+//         buildPromise = buildPromise.then(async () => {
+//             await buildEntryPoints(fileOption);
+//             console.log("doing ", i, "...");
+//             let currentOptions = Object.assign({}, options, fileOption.options);
+//             const bundle = await rollup.rollup(currentOptions);
+//
+//             // or write the bundle to disk
+//             await bundle.write(fileOption.output);
+//             fs.unlinkSync(tmpFile);
+//         });
+//     });
+// }
 
 // build();
 buildEntryPoints({

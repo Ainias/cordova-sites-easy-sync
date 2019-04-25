@@ -12,12 +12,12 @@ export class EasySyncServerDb extends BaseDatabase {
         entity.updatedAt = new Date();
         if (entity.id !== null) {
             let compareEntity = await this.findById(entity.constructor, entity.id);
-            if (compareEntity && compareEntity.version === parseInt(entity.version)){
+            if (compareEntity === null || compareEntity.version === parseInt(entity.version)){
                 entity.version++;
                 return super.saveEntity(entity);
             }
             else {
-                throw new Error("optimistic locking exception for id "+ entity.id);
+                throw new Error("optimistic locking exception for id "+ entity.id +" and model "+entity.constructor.getSchemaName());
             }
 
             // let repository = await this._getRepository(entity.constructor);
