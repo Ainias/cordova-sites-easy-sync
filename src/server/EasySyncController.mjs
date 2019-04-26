@@ -10,11 +10,7 @@ const MAX_MODELS_PER_RUN = 200;
 
 export class EasySyncController {
 
-    static async _syncModel(model, lastSynced, offset, where) {
-        if (model.CAN_BE_SYNCED === false) {
-            throw new Error("tried to sync unsyncable model " + model.getSchemaName());
-        }
-
+    static async _doSyncModel(model, lastSynced, offset, where) {
         let dateLastSynced = new Date(parseInt(lastSynced || 0));
         let newDateLastSynced = new Date().getTime();
         offset = parseInt(offset);
@@ -32,6 +28,13 @@ export class EasySyncController {
             "nextOffset": offset + entities.length,
             "shouldAskAgain": entities.length === MAX_MODELS_PER_RUN
         };
+    }
+
+    static async _syncModel(model, lastSynced, offset, where, req) {
+        if (model.CAN_BE_SYNCED === false) {
+            throw new Error("tried to sync unsyncable model " + model.getSchemaName());
+        }
+        return this._doSyncModel(model, lastSynced, offset, where);
     }
 
     static async sync(req, res) {
@@ -62,7 +65,7 @@ export class EasySyncController {
         let requests = [];
         let modelNames = Object.keys(modelClasses);
         modelNames.forEach(modelName => {
-            requests.push(EasySyncController._syncModel(modelClasses[modelName], (requestedModels[modelName].lastSynced || 0), (req.query.offset || 0), requestedModels[modelName].where));
+            requests.push(this._syncModel(modelClasses[modelName], (requestedModels[modelName].lastSynced || 0), (req.query.offset || 0), requestedModels[modelName].where, req));
         });
 
         let results = await Promise.all(requests);
@@ -80,19 +83,33 @@ export class EasySyncController {
     static async modifyModel(req, res) {
         let modelName = req.body.model;
         let modelData = req.body.values;
+
+        let isArray = true;
         if (!Array.isArray(modelData)) {
+            isArray = false;
             modelData = [modelData];
         }
+
+        // console.log("data", modelData);
 
         // let db = await EasySyncServerDb.getInstance();
         let model = EasySyncServerDb.getModel(modelName);
         let entities = await model._fromJson(modelData, undefined, true);
+        console.log("entity", entities);
 
         let savePromises = [];
         entities.forEach(model => {
             savePromises.push(model.save());
         });
         await Promise.all(savePromises);
-        res.json(entities);
+        if (!isArray) {
+            if (entities.length >= 1) {
+                res.json(entities[0]);
+            } else {
+                res.json({});
+            }
+        } else {
+            res.json(entities);
+        }
     }
 }

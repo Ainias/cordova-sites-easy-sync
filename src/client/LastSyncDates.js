@@ -28,7 +28,7 @@ export class LastSyncDates extends BaseModel{
         let columns = BaseModel.getColumnDefinitions();
         columns.model = {type: BaseDatabase.TYPES.STRING};
         columns.lastSynced= {type: BaseDatabase.TYPES.DATE};
-        columns.where= {type: BaseDatabase.TYPES.JSON};
+        columns.where= {type: BaseDatabase.TYPES.SIMPLE_JSON};
         return columns;
     }
 }

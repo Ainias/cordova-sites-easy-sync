@@ -3,16 +3,16 @@ import {EasySyncController} from "./EasySyncController";
 
 const easySyncRoutes = express.Router();
 
-const errorHandler = (fn) => {
+const errorHandler = (fn, context) => {
     return (req, res, next) => {
-        const resPromise = fn(req,res,next);
-        if (resPromise.catch){
+        const resPromise = fn.call(context, req,res,next);
+        if (resPromise && resPromise.catch){
             resPromise.catch(err => next(err));
         }
     }
 };
 
-easySyncRoutes.get("", errorHandler(EasySyncController.sync));
-easySyncRoutes.post("", errorHandler(EasySyncController.modifyModel));
+easySyncRoutes.get("", errorHandler(EasySyncController.sync, EasySyncController));
+easySyncRoutes.post("", errorHandler(EasySyncController.modifyModel, EasySyncController));
 
 export {easySyncRoutes};

@@ -9,6 +9,14 @@ export class EasySyncBaseModel extends BaseModel {
         this.deleted = false;
     }
 
+    // async save() {
+    //     return this.constructor._save(this);
+    // }
+    //
+    // static async _save(entity){
+    //     return this._database.saveEntity(entity);
+    // }
+
     static getColumnDefinitions() {
         let columns = super.getColumnDefinitions();
         columns["createdAt"] = {
@@ -98,7 +106,7 @@ export class EasySyncBaseModel extends BaseModel {
             } else {
                 if (Array.isArray(this[relationName])) {
                     let ids = [];
-                    this[relationName].forEach(child => ids.push(child.id));
+                    this[relationName].forEach(child => (child && ids.push(child.id)));
                     obj[relationName] = ids;
                 } else if (this[relationName] instanceof BaseModel) {
                     obj[relationName] = this[relationName].id;

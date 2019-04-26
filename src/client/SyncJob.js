@@ -88,7 +88,7 @@ export class SyncJob {
                     }
                     relationPromises.push(valuePromise.then(value => {
                         entity[relation] = value;
-                        return entity.save();
+                        return entity.save(true);
                     }));
                 });
             });
