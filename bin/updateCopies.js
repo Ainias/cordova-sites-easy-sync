@@ -9,6 +9,7 @@ let pathsToProjects = [
     // "/home/silas/Projekte/Web/cordova-sites-user-management",
 
     "/home/silas/PhpstormProjects/cordova-sites-user-management",
+    "/home/silas/PhpstormProjects/project-echo",
     "/var/www/i9/mbb"
 ];
 

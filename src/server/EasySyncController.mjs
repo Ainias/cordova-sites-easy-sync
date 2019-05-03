@@ -1,12 +1,13 @@
 import {EasySyncServerDb} from "./EasySyncServerDb";
 import * as _typeorm from "typeorm";
+import {BaseDatabase} from "cordova-sites-database";
 
 let typeorm = _typeorm;
 if (typeorm.default) {
     typeorm = typeorm.default;
 }
 
-const MAX_MODELS_PER_RUN = 200;
+const MAX_MODELS_PER_RUN = 50;
 
 export class EasySyncController {
 
@@ -90,12 +91,27 @@ export class EasySyncController {
             modelData = [modelData];
         }
 
-        // console.log("data", modelData);
-
-        // let db = await EasySyncServerDb.getInstance();
         let model = EasySyncServerDb.getModel(modelName);
         let entities = await model._fromJson(modelData, undefined, true);
-        console.log("entity", entities);
+
+
+        let savedEntityIds = [];
+        entities.forEach(entity => savedEntityIds.push(entity.id));
+        let savedEntitiesArray = model.findByIds(savedEntityIds);
+        let savedEntities = {};
+        savedEntitiesArray.forEach(savedEntity => savedEntities[savedEntity.id] = savedEntity);
+
+        let relations = model.getRelationDefinitions();
+        entities.forEach(entity => {
+            if (entity.id && savedEntities[entity.id]) {
+                let savedEntity = savedEntities[entity.id];
+                Object.keys(relations).forEach(relationName => {
+                    if (!entity[relationName]){
+                        entity[relationName] = savedEntity[relationName];
+                    }
+                });
+            }
+        });
 
         let savePromises = [];
         entities.forEach(model => {

@@ -72,7 +72,9 @@ export class EasySyncBaseModel extends BaseModel {
                             } else {
                                 loadPromise = BaseDatabase.getModel(relations[relationName].target).findById(values);
                             }
-                            loadPromises.push(loadPromise.then(value => models[index][relationName] = value));
+                            loadPromises.push(loadPromise.then(value => {
+                                console.log("loaded element(s):",relationName,  value);
+                                models[index][relationName] = value}));
                         } else if (includeRelations === false) {
                             if (relations[relationName].type === "many-to-many" || relations[relationName].type === "one-to-many") {
                                 models[index][relationName] = [];
@@ -81,6 +83,25 @@ export class EasySyncBaseModel extends BaseModel {
                             }
                         }
                     }
+                    // else if (values instanceof BaseModel || (Array.isArray(values) && values.length >= 1 && values[0] instanceof BaseModel)){
+                    //     if (includeRelations === true) {
+                    //         let loadPromise = null;
+                    //         if (Array.isArray(values)) {
+                    //             loadPromise = BaseDatabase.getModel(relations[relationName].target).findByIds(values);
+                    //         } else {
+                    //             loadPromise = BaseDatabase.getModel(relations[relationName].target).findById(values);
+                    //         }
+                    //         loadPromises.push(loadPromise.then(value => {
+                    //             console.log("loaded element(s):",relationName,  value);
+                    //             models[index][relationName] = value}));
+                    //     } else if (includeRelations === false) {
+                    //         if (relations[relationName].type === "many-to-many" || relations[relationName].type === "one-to-many") {
+                    //             models[index][relationName] = [];
+                    //         } else {
+                    //             models[index][relationName] = null;
+                    //         }
+                    //     }
+                    // }
                 });
                 resolve();
             }));

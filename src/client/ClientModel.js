@@ -15,7 +15,7 @@ export class ClientModel extends BaseModel {
 
     async save(local) {
         if (!local) {
-            let values = this.toJSON(true);
+            let values = this.toJSON();
             let data = await DataManager.send(ClientModel.SAVE_PATH, {
                 "model": this.constructor.getSchemaName(),
                 "values": values

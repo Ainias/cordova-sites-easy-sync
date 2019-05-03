@@ -9,27 +9,28 @@ if (typeorm.default) {
 }
 
 export class SyncJob {
-    // async syncAll() {
-    //     return this.sync(Object.values(EasySyncClientDb._models));
-    // }
 
     async sync(modelClasses) {
-
         let modelNames = [];
         let requestQuery = {};
 
-        let keyedModelClasses = {};
-        modelClasses.forEach(async cl => {
+        // let keyedModelClasses = {};
+
+
+        let keyedModelClasses = EasySyncClientDb.getModel();
+        modelClasses.forEach(cl => {
             modelNames.push(cl.getSchemaName());
             requestQuery[cl.getSchemaName()] = {};
-            keyedModelClasses[cl.getSchemaName()] = cl;
+            // keyedModelClasses[cl.getSchemaName()] = cl;
         });
 
         let lastSyncModels = {};
+
         let lastSyncModelsArray = await LastSyncDates.find({
             "model":
                 typeorm.In(modelNames)
         });
+
         lastSyncModelsArray.forEach(lastSyncModel => {
             requestQuery[lastSyncModel.getModel()]["lastSynced"] = lastSyncModel.getLastSynced().getTime();
             lastSyncModels[lastSyncModel.getModel()] = lastSyncModel;
@@ -44,6 +45,7 @@ export class SyncJob {
 
         let shouldAskAgain = false;
         let relationshipModels = {};
+
         do {
             shouldAskAgain = false;
             results = await SyncJob._fetchModel(requestQuery, offset);
@@ -79,6 +81,7 @@ export class SyncJob {
             Object.keys(relationshipModels[modelClassName]).forEach(id => {
                 let entity = relationshipModels[modelClassName][id]["entity"];
                 let relations = relationshipModels[modelClassName][id]["relations"];
+                let entityRelationPromises = [];
                 Object.keys(relations).forEach(relation => {
                     let valuePromise = null;
                     if (Array.isArray(relations[relation])) {
@@ -86,11 +89,18 @@ export class SyncJob {
                     } else {
                         valuePromise = keyedModelClasses[relationDefinitions[relation]["target"]].findById(relations[relation]);
                     }
-                    relationPromises.push(valuePromise.then(value => {
+
+                    entityRelationPromises.push(valuePromise.then(value => {
                         entity[relation] = value;
-                        return entity.save(true);
+                        // return entity.save(true).then((r) => {
+                        //     console.log("relationship for ", id, relation, " saved");
+                        //     return r;
+                        // });
                     }));
                 });
+                relationPromises.push(Promise.all(entityRelationPromises).then(() => {
+                    return entity.save(true);
+                }))
             });
         });
         await Promise.all(relationPromises);
