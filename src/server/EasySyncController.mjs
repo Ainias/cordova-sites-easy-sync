@@ -32,6 +32,9 @@ export class EasySyncController {
     }
 
     static async _syncModel(model, lastSynced, offset, where, req) {
+        if (!model){
+            throw new Error("tried to sync not defined model!");
+        }
         if (model.CAN_BE_SYNCED === false) {
             throw new Error("tried to sync unsyncable model " + model.getSchemaName());
         }
