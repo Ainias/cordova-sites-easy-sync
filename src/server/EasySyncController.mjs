@@ -100,7 +100,7 @@ export class EasySyncController {
 
         let savedEntityIds = [];
         entities.forEach(entity => savedEntityIds.push(entity.id));
-        let savedEntitiesArray = model.findByIds(savedEntityIds);
+        let savedEntitiesArray = await model.findByIds(savedEntityIds);
         let savedEntities = {};
         savedEntitiesArray.forEach(savedEntity => savedEntities[savedEntity.id] = savedEntity);
 
