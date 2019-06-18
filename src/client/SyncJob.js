@@ -2,6 +2,7 @@ import {LastSyncDates} from "./LastSyncDates";
 import {DataManager, Helper} from "cordova-sites";
 import {EasySyncClientDb} from "./EasySyncClientDb";
 import * as _typeorm from "typeorm";
+import {BaseModel} from "cordova-sites-database";
 
 let typeorm = _typeorm;
 if (typeorm.default) {
@@ -14,14 +15,11 @@ export class SyncJob {
         let modelNames = [];
         let requestQuery = {};
 
-        // let keyedModelClasses = {};
-
 
         let keyedModelClasses = EasySyncClientDb.getModel();
         modelClasses.forEach(cl => {
             modelNames.push(cl.getSchemaName());
             requestQuery[cl.getSchemaName()] = {};
-            // keyedModelClasses[cl.getSchemaName()] = cl;
         });
 
         let lastSyncModels = {};
@@ -30,6 +28,8 @@ export class SyncJob {
             "model":
                 typeorm.In(modelNames)
         });
+
+        // debugger;
 
         lastSyncModelsArray.forEach(lastSyncModel => {
             requestQuery[lastSyncModel.getModel()]["lastSynced"] = lastSyncModel.getLastSynced().getTime();
@@ -92,10 +92,6 @@ export class SyncJob {
 
                     entityRelationPromises.push(valuePromise.then(value => {
                         entity[relation] = value;
-                        // return entity.save(true).then((r) => {
-                        //     console.log("relationship for ", id, relation, " saved");
-                        //     return r;
-                        // });
                     }));
                 });
                 relationPromises.push(Promise.all(entityRelationPromises).then(() => {
@@ -106,10 +102,14 @@ export class SyncJob {
         await Promise.all(relationPromises);
 
         let lastSyncPromises = [];
-        Object.keys(lastSyncModels).forEach(lastSyncModelName => {
-            lastSyncPromises.push(lastSyncModels[lastSyncModelName].save());
+        Object.keys(lastSyncModels).forEach(model => {
+            lastSyncPromises.push(lastSyncModels[model].save())
         });
-        await Promise.all(lastSyncPromises);
+
+        await Promise.all(lastSyncPromises).catch(e => {
+            console.error(e);
+            return Promise.reject(e);
+        });
 
         let finalRes = {};
         results.forEach(res => {
@@ -146,22 +146,25 @@ export class SyncJob {
             });
 
             savePromises.push(modelClass._fromJson(changedModels).then(changedEntity => {
-                let relations = modelClass.getRelations();
+                let relations = modelClass.getRelationDefinitions();
                 changedEntity.forEach(entity => {
-                    relations.forEach(relation => {
+                    Object.keys(relations).forEach(relation => {
                         if (entity[relation]) {
-                            relationshipModels[name] = Helper.nonNull(relationshipModels[name], {});
-                            relationshipModels[name][entity.id] = Helper.nonNull(relationshipModels[name][entity.id], {});
-                            relationshipModels[name][entity.id]["entity"] = entity;
-                            relationshipModels[name][entity.id]["relations"] = Helper.nonNull(relationshipModels[name][entity.id]["relations"], {});
-                            relationshipModels[name][entity.id]["relations"][relation] = entity[relation];
+                            // if ((relations[relation].type !== BaseModel.RELATION.MANY_TO_MANY || !relations[relation].inverseSide) || (name < relations[relation].target || (name === relations[relation].target && relation < relations[relation].inverseSide))) {
+                            if (relations[relation].sync !== false) {
+                                //save relation
+                                relationshipModels[name] = Helper.nonNull(relationshipModels[name], {});
+                                relationshipModels[name][entity.id] = Helper.nonNull(relationshipModels[name][entity.id], {});
+                                relationshipModels[name][entity.id]["entity"] = entity;
+                                relationshipModels[name][entity.id]["relations"] = Helper.nonNull(relationshipModels[name][entity.id]["relations"], {});
+                                relationshipModels[name][entity.id]["relations"][relation] = entity[relation];
+                            }
                             entity[relation] = null;
                         }
                     })
                 });
 
                 return EasySyncClientDb.getInstance().saveEntity(changedEntity).then(res => {
-
                     return {
                         "model": name,
                         "entities": res,
@@ -173,7 +176,6 @@ export class SyncJob {
                 });
             }));
             savePromises.push(EasySyncClientDb.getInstance().deleteEntity(deletedModelsIds, modelClass).then(res => {
-
                 return {
                     "model": name,
                     "entities": res,
@@ -192,11 +194,13 @@ export class SyncJob {
     }
 
     static async _fetchModel(query, offset) {
-        return await DataManager.load(SyncJob.SYNC_PATH_PREFIX +
+        let res = await DataManager.load(SyncJob.SYNC_PATH_PREFIX +
             DataManager.buildQuery({
                 "models": JSON.stringify(query),
                 "offset": offset
             }));
+
+        return res;
     }
 }
 

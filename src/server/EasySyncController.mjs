@@ -85,6 +85,7 @@ export class EasySyncController {
     }
 
     static async modifyModel(req, res) {
+
         let modelName = req.body.model;
         let modelData = req.body.values;
 
@@ -95,32 +96,54 @@ export class EasySyncController {
         }
 
         let model = EasySyncServerDb.getModel(modelName);
+
+        //get Entities from JSON
         let entities = await model._fromJson(modelData, undefined, true);
 
+        console.log("entities", entities);
 
-        let savedEntityIds = [];
-        entities.forEach(entity => savedEntityIds.push(entity.id));
-        let savedEntitiesArray = await model.findByIds(savedEntityIds);
-        let savedEntities = {};
-        savedEntitiesArray.forEach(savedEntity => savedEntities[savedEntity.id] = savedEntity);
+        //Load already existing entities
+        let loadedEntityIds = [];
+        entities.forEach(entity => loadedEntityIds.push(entity.id));
+        let loadedEntitiesArray = await model.findByIds(loadedEntityIds, model.getRelations());
+
+        //Index loaded entities
+        let loadedEntities = {};
+        loadedEntitiesArray.forEach(loadedEntity => loadedEntities[loadedEntity.id] = loadedEntity);
 
         let relations = model.getRelationDefinitions();
         entities.forEach(entity => {
-            if (entity.id && savedEntities[entity.id]) {
-                let savedEntity = savedEntities[entity.id];
+            //Wenn bereits vorhanden, dann...
+            if (entity.id && loadedEntities[entity.id]) {
+                let loadedEntity = loadedEntities[entity.id];
                 Object.keys(relations).forEach(relationName => {
+                    //...und entsprechende Relation nicht gesetzt, setze relation
                     if (!entity[relationName]){
-                        entity[relationName] = savedEntity[relationName];
+                        entity[relationName] = loadedEntity[relationName];
                     }
                 });
             }
         });
 
+        //save entities
         let savePromises = [];
-        entities.forEach(model => {
-            savePromises.push(model.save());
+        entities.forEach(entity => {
+            let entityRelations = {};
+            Object.keys(relations).forEach(rel => {
+                entityRelations[rel] = entity[rel];
+                entity[rel] = null;
+            });
+            savePromises.push(entity.save().then((entity) => {
+                console.log("ent rel - ",entity, entityRelations);
+                Object.keys(relations).forEach(rel => {
+                    entity[rel] = entityRelations[rel];
+                });
+                return entity.save();
+            }));
         });
         await Promise.all(savePromises);
+
+        console.log("all saved!");
         if (!isArray) {
             if (entities.length >= 1) {
                 res.json(entities[0]);
