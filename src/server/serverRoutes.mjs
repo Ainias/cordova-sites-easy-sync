@@ -14,5 +14,6 @@ const errorHandler = (fn, context) => {
 
 easySyncRoutes.get("", errorHandler(EasySyncController.sync, EasySyncController));
 easySyncRoutes.post("", errorHandler(EasySyncController.modifyModel, EasySyncController));
+easySyncRoutes.post("/delete", errorHandler(EasySyncController.deleteModel, EasySyncController));
 
 export {easySyncRoutes};

@@ -32,7 +32,7 @@ export class EasySyncController {
     }
 
     static async _syncModel(model, lastSynced, offset, where, req) {
-        if (!model){
+        if (!model) {
             throw new Error("tried to sync not defined model!");
         }
         if (model.CAN_BE_SYNCED === false) {
@@ -84,10 +84,7 @@ export class EasySyncController {
         res.json(result);
     }
 
-    static async modifyModel(req, res) {
-
-        let modelName = req.body.model;
-        let modelData = req.body.values;
+    static async _doModifyModel(model, modelData) {
 
         let isArray = true;
         if (!Array.isArray(modelData)) {
@@ -95,12 +92,8 @@ export class EasySyncController {
             modelData = [modelData];
         }
 
-        let model = EasySyncServerDb.getModel(modelName);
-
         //get Entities from JSON
         let entities = await model._fromJson(modelData, undefined, true);
-
-        console.log("entities", entities);
 
         //Load already existing entities
         let loadedEntityIds = [];
@@ -118,7 +111,7 @@ export class EasySyncController {
                 let loadedEntity = loadedEntities[entity.id];
                 Object.keys(relations).forEach(relationName => {
                     //...und entsprechende Relation nicht gesetzt, setze relation
-                    if (!entity[relationName]){
+                    if (!entity[relationName]) {
                         entity[relationName] = loadedEntity[relationName];
                     }
                 });
@@ -134,7 +127,7 @@ export class EasySyncController {
                 entity[rel] = null;
             });
             savePromises.push(entity.save().then((entity) => {
-                console.log("ent rel - ",entity, entityRelations);
+                console.log("ent rel - ", entity, entityRelations);
                 Object.keys(relations).forEach(rel => {
                     entity[rel] = entityRelations[rel];
                 });
@@ -143,15 +136,50 @@ export class EasySyncController {
         });
         await Promise.all(savePromises);
 
-        console.log("all saved!");
+        let res = {};
         if (!isArray) {
             if (entities.length >= 1) {
-                res.json(entities[0]);
-            } else {
-                res.json({});
+                res = entities[0];
             }
         } else {
-            res.json(entities);
+            res = entities;
         }
+
+        return res;
+    }
+
+    static async modifyModel(req, res) {
+        let modelName = req.body.model;
+        let modelData = req.body.values;
+
+        let model = EasySyncServerDb.getModel(modelName);
+        if (model.CAN_BE_SYNCED === false) {
+            throw new Error("tried to sync unsyncable model " + model.getSchemaName());
+        }
+
+        res.json(await this._doModifyModel(model, modelData));
+    }
+
+    static async _doDeleteModel(model, modelIds){
+        if (!Array.isArray(modelIds)) {
+            modelIds = [modelIds];
+        }
+
+        await EasySyncServerDb.getInstance().deleteEntity(modelIds, model);
+    }
+
+    static async deleteModel(req, res) {
+        let modelName = req.body.model;
+        let modelIds = req.body.id;
+
+        let model = EasySyncServerDb.getModel(modelName);
+
+        if (model.CAN_BE_SYNCED === false) {
+            throw new Error("tried to delete unsyncable model " + model.getSchemaName());
+        }
+
+        await this._doDeleteModel(model, modelIds);
+
+        res.json({});
     }
 }

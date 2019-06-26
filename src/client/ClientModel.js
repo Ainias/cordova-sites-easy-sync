@@ -29,6 +29,20 @@ export class ClientModel extends BaseModel {
         return super.save();
     }
 
+    async delete(local){
+        if (!local){
+            let data = await DataManager.send(ClientModel.DELETE_PATH, {
+                "model": this.constructor.getSchemaName(),
+                "id": this.id
+            });
+            if (data.error){
+                throw new Error(data.error);
+            }
+        }
+
+        return super.delete();
+    }
+
     static getSchemaDefinition() {
         let definitions = super.getSchemaDefinition();
 
@@ -45,3 +59,4 @@ export class ClientModel extends BaseModel {
 }
 
 ClientModel.SAVE_PATH = "/sync";
+ClientModel.DELETE_PATH = "/sync/delete";

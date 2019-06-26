@@ -1,5 +1,4 @@
 import {BaseDatabase} from "cordova-sites-database";
-// import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 
 export class EasySyncServerDb extends BaseDatabase {
 
@@ -8,37 +7,71 @@ export class EasySyncServerDb extends BaseDatabase {
         return Object.assign(options, EasySyncServerDb.CONNECTION_PARAMETERS);
     }
 
-    async saveEntity(entity) {
-        entity.updatedAt = new Date();
-        if (entity.id !== null) {
-            let compareEntity = await this.findById(entity.constructor, entity.id);
-            if (compareEntity === null || compareEntity.version === parseInt(entity.version)){
-                entity.version++;
-                return super.saveEntity(entity);
-            }
-            else {
-                throw new Error("optimistic locking exception for id "+ entity.id +" and model "+entity.constructor.getSchemaName());
-            }
+    async saveEntity(entities) {
 
-            // let repository = await this._getRepository(entity.constructor);
-            // let columns = Object.keys(entity.constructor.getColumnDefinitions());
-            // // columns.push(...entity.constructor.getRelations());
-            //
-            // let values = {};
-            // columns.forEach(column => {
-            //     values[column] = entity[column];
-            // });
-            //
-            // let res = await repository.createQueryBuilder()
-            //     .update(entity.constructor)
-            //     .set(values)
-            //     .where("id = :id AND version = :version", {id: entity.id, version: version})
-            //     .execute();
-            // console.log(res);
-            // return entity;
-        } else {
-            return super.saveEntity(entity);
+        // let isArray = true;
+        if (!Array.isArray(entities)) {
+            entities = [entities];
+            // isArray = false;
         }
+
+        if (entities.length === 0) {
+            return entities;
+        }
+
+        let model = entities[0].constructor;
+
+        let entitiesIds = [];
+        entities.forEach(entity => {
+            entity.updatedAt = new Date();
+            if (entity.id !== null) {
+                entitiesIds.push(entity.id)
+            }
+        });
+        let indexedCompareEntities = {};
+        let compareEntities = await this.findByIds(model, entitiesIds);
+        compareEntities.forEach(cEnt => indexedCompareEntities[cEnt.id] = cEnt);
+
+        entities.forEach(entity => {
+            if (entity.id !== null) {
+                if (indexedCompareEntities[entity.id] === null || indexedCompareEntities[entity.id].version === parseInt(entity.version)) {
+                    entity.version++;
+                } else {
+                    throw new Error("optimistic locking exception for id " + entities.id + " and model " + entities.constructor.getSchemaName());
+                }
+            }
+        });
+        return super.saveEntity(entities);
+    }
+
+    async deleteEntity(entities, model, deleteFully) {
+        if (deleteFully) {
+            return super.deleteEntity(entities, model);
+        }
+
+        // let isArray = true;
+        if (!Array.isArray(entities)) {
+            entities = [entities];
+            // isArray = false;
+        }
+
+        if (entities.length === 0) {
+            return entities;
+        }
+
+        if (!model) {
+            model = entities[0].constructor;
+        }
+
+        if (typeof entities[0] === "number") {
+            entities = await model.findByIds(entities);
+        }
+
+        entities.forEach(ent => {
+            ent.deleted = true;
+        });
+
+        return this.saveEntity(entities);
     }
 }
 

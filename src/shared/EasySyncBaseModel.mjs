@@ -9,14 +9,6 @@ export class EasySyncBaseModel extends BaseModel {
         this.deleted = false;
     }
 
-    // async save() {
-    //     return this.constructor._save(this);
-    // }
-    //
-    // static async _save(entity){
-    //     return this._database.saveEntity(entity);
-    // }
-
     static getColumnDefinitions() {
         let columns = super.getColumnDefinitions();
         columns["createdAt"] = {
