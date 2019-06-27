@@ -34,7 +34,7 @@ export class EasySyncServerDb extends BaseDatabase {
 
         entities.forEach(entity => {
             if (entity.id !== null) {
-                if (indexedCompareEntities[entity.id] === null || indexedCompareEntities[entity.id].version === parseInt(entity.version)) {
+                if (!indexedCompareEntities[entity.id] || indexedCompareEntities[entity.id].version === parseInt(entity.version)) {
                     entity.version++;
                 } else {
                     throw new Error("optimistic locking exception for id " + entities.id + " and model " + entities.constructor.getSchemaName());
