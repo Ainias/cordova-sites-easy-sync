@@ -126,11 +126,15 @@ export class EasySyncController {
                 entityRelations[rel] = entity[rel];
                 entity[rel] = null;
             });
-            savePromises.push(entity.save().then((entity) => {
-                console.log("ent rel - ", entity, entityRelations);
+            savePromises.push(entity.save().then(entity => {
+                debugger;
+                console.log("saved ent", entity);
+
                 Object.keys(relations).forEach(rel => {
                     entity[rel] = entityRelations[rel];
                 });
+
+                debugger;
                 return entity.save();
             }));
         });

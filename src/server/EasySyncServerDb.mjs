@@ -9,10 +9,10 @@ export class EasySyncServerDb extends BaseDatabase {
 
     async saveEntity(entities) {
 
-        // let isArray = true;
+        let isArray = true;
         if (!Array.isArray(entities)) {
             entities = [entities];
-            // isArray = false;
+            isArray = false;
         }
 
         if (entities.length === 0) {
@@ -37,11 +37,18 @@ export class EasySyncServerDb extends BaseDatabase {
                 if (!indexedCompareEntities[entity.id] || indexedCompareEntities[entity.id].version === parseInt(entity.version)) {
                     entity.version++;
                 } else {
-                    throw new Error("optimistic locking exception for id " + entities.id + " and model " + entities.constructor.getSchemaName());
+                    throw new Error("optimistic locking exception for id " + entity.id + " and model " + entity.constructor.getSchemaName())+": got version "+entity.version+", but expected "+indexedCompareEntities[entity.id].version;
                 }
             }
         });
-        return super.saveEntity(entities);
+        let savedEntites = await super.saveEntity(entities);
+        if (!isArray){
+            if (savedEntites.length > 0){
+                return savedEntites[0];
+            }
+            return null;
+        }
+        return savedEntites;
     }
 
     async deleteEntity(entities, model, deleteFully) {

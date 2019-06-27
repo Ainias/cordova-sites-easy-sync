@@ -20,10 +20,11 @@ export class ClientModel extends BaseModel {
                 "model": this.constructor.getSchemaName(),
                 "values": values
             });
+
             if (data.error) {
                 throw new Error(data.error);
             }
-            await this.constructor._fromJson(data, this);
+            await this.constructor._fromJson(data, this, true);
         }
 
         return super.save();

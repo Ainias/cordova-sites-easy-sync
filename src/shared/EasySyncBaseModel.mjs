@@ -26,36 +26,41 @@ export class EasySyncBaseModel extends BaseModel {
         return columns;
     }
 
-    static async _fromJson(jsonObjects, models, includeRelations) {
-        models = models || [];
+    static async _fromJson(jsonObjects, entities, includeRelations) {
+        // debugger;
+
+        entities = entities || [];
         let isArray = Array.isArray(jsonObjects);
         if (!isArray) {
             jsonObjects = [jsonObjects];
         }
-        if (!Array.isArray(models)) {
-            models = [models];
+        if (!Array.isArray(entities)) {
+            entities = [entities];
         }
         let relations = this.getRelationDefinitions();
         let loadPromises = [];
+        let addLoadPromises;
         jsonObjects.forEach((jsonObject, index) => {
-            loadPromises.push(new Promise(async resolve => {
-                let model = null;
-                if (models.length > index) {
-                    model = models[index];
+             addLoadPromises = new Promise(async resolve => {
+                let entity = null;
+                if (entities.length > index) {
+                    entity = entities[index];
                 } else if (jsonObject.id !== null && jsonObject.id !== undefined) {
-                    model = await this.findById(jsonObject.id, this.getRelations());
+                    entity = await this.findById(jsonObject.id, this.getRelations());
                 }
 
-                if (model === null) {
-                    model = new this();
+                if (entity === null) {
+                    entity = new this();
                 }
 
                 if (!jsonObject.version) {
                     jsonObject.version = 1;
                 }
-                models[index] = Object.assign(model, jsonObject);
+
+                entities[index] = Object.assign(entity, jsonObject);
                 Object.keys(relations).forEach(relationName => {
-                    let values = models[index][relationName];
+
+                    let values = entities[index][relationName];
                     if (typeof values === "number" || (Array.isArray(values) && values.length >= 1 && typeof values[0] === "number")) {
                         if (includeRelations === true) {
                             let loadPromise = null;
@@ -65,44 +70,28 @@ export class EasySyncBaseModel extends BaseModel {
                                 loadPromise = BaseDatabase.getModel(relations[relationName].target).findById(values);
                             }
                             loadPromises.push(loadPromise.then(value => {
-                                console.log("loaded element(s):",relationName,  value);
-                                models[index][relationName] = value}));
+                                entities[index][relationName] = value;
+                            }));
+
                         } else if (includeRelations === false) {
                             if (relations[relationName].type === "many-to-many" || relations[relationName].type === "one-to-many") {
-                                models[index][relationName] = [];
+                                entities[index][relationName] = [];
                             } else {
-                                models[index][relationName] = null;
+                                entities[index][relationName] = null;
                             }
                         }
                     }
-                    // else if (values instanceof BaseModel || (Array.isArray(values) && values.length >= 1 && values[0] instanceof BaseModel)){
-                    //     if (includeRelations === true) {
-                    //         let loadPromise = null;
-                    //         if (Array.isArray(values)) {
-                    //             loadPromise = BaseDatabase.getModel(relations[relationName].target).findByIds(values);
-                    //         } else {
-                    //             loadPromise = BaseDatabase.getModel(relations[relationName].target).findById(values);
-                    //         }
-                    //         loadPromises.push(loadPromise.then(value => {
-                    //             console.log("loaded element(s):",relationName,  value);
-                    //             models[index][relationName] = value}));
-                    //     } else if (includeRelations === false) {
-                    //         if (relations[relationName].type === "many-to-many" || relations[relationName].type === "one-to-many") {
-                    //             models[index][relationName] = [];
-                    //         } else {
-                    //             models[index][relationName] = null;
-                    //         }
-                    //     }
-                    // }
                 });
                 resolve();
-            }));
+            });
         });
+        //addLoadPromises adds other loadPromises. Therefore wait until done, then wait for other
+        await addLoadPromises;
         await Promise.all(loadPromises);
         if (!isArray) {
-            models = (models.length > 0) ? models[0] : null;
+            entities = (entities.length > 0) ? entities[0] : null;
         }
-        return models;
+        return entities;
     }
 
     toJSON(includeFull) {
@@ -131,4 +120,5 @@ export class EasySyncBaseModel extends BaseModel {
         return obj;
     }
 }
+
 EasySyncBaseModel.CAN_BE_SYNCED = true;
