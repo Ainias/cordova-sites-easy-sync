@@ -1,73 +1,7 @@
-const rollup = require("rollup");
 const path = require("path");
 const fs = require('fs');
-const jsonRollup = require("rollup-plugin-json");
-const commonjs = require('rollup-plugin-commonjs');
-const importFilePath = require("rollup-plugin-import-file-path");
-const htmlImportFilePath = require("rollup-plugin-html-import-file-path");
 
 const tmpFile = "./tmp/script.js";
-
-const fileOptions = [{
-    input: [
-        path.resolve(process.cwd(), "src/client/"),
-        // path.resolve(process.cwd(), "src/shared/"),
-    ],
-    output: {
-        format: 'es',
-        file: path.resolve(process.cwd(), 'client.js'),
-        nameFile: path.resolve(process.cwd(), 'client.names.json'),
-    },
-},
-//     {
-//     input: [
-//         path.resolve(process.cwd(), "src/server/"),
-//         // path.resolve(process.cwd(), "src/shared/"),
-//     ],
-//     output: {
-//         format: 'es',
-//         file: path.resolve(process.cwd(), 'server.mjs'),
-//         nameFile: path.resolve(process.cwd(), 'server.names.json'),
-//     }
-// },
-    {
-    input: [
-        path.resolve(process.cwd(), "src/shared/"),
-    ],
-    output: {
-        format: 'es',
-        file: path.resolve(process.cwd(), 'model.mjs'),
-        nameFile: path.resolve(process.cwd(), 'model.names.json'),
-    }
-}];
-
-const options = {
-    input: path.resolve(process.cwd(), tmpFile),
-    plugins:
-        [
-            commonjs({
-                // non-CommonJS modules will be ignored, but you can also
-                // specifically include/exclude files
-                include: 'node_modules/**',  // Default: undefined
-            }),
-            htmlImportFilePath({
-                include: "**/*.html",
-                importAttributes: {
-                    "[data-view]": "data-view",
-                    "img[src]": "src"
-                },
-                relative: true,
-                asImport: true,
-            }),
-            importFilePath({
-                include: "**/*.jpg"
-            }),
-            importFilePath({
-                include: "**/*.png"
-            }),
-            jsonRollup({compact: true})
-        ]
-};
 
 function findNames(dir, excluded) {
     let names = {};
@@ -114,23 +48,6 @@ async function buildEntryPoints(fileOption, target) {
     fs.writeFileSync(target, imports);
 }
 
-// async function build() {
-//     let buildPromise = Promise.resolve();
-//     fileOptions.forEach(async (fileOption, i) => {
-//         buildPromise = buildPromise.then(async () => {
-//             await buildEntryPoints(fileOption);
-//             console.log("doing ", i, "...");
-//             let currentOptions = Object.assign({}, options, fileOption.options);
-//             const bundle = await rollup.rollup(currentOptions);
-//
-//             // or write the bundle to disk
-//             await bundle.write(fileOption.output);
-//             fs.unlinkSync(tmpFile);
-//         });
-//     });
-// }
-
-// build();
 buildEntryPoints({
     input: [
         path.resolve(process.cwd(), "src/server/"),

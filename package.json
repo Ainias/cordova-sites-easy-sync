@@ -11,18 +11,15 @@
   "peerDependencies": {
     "cordova-sites-database": "git+https://github.com/Ainias/cordova-sites-database.git",
     "cordova-sites": "git+https://github.com/Ainias/cordova-sites.git",
+    "js-helper": "git+https://github.com/Ainias/js-helper.git",
     "express": "^4.16.4",
     "typeorm": "^0.2.14"
   },
   "dependencies": {},
   "devDependencies": {
-    "rollup": "^1.6.0",
-    "rollup-plugin-commonjs": "^9.2.0",
-    "rollup-plugin-html-import-file-path": "git+https://github.com/Ainias/rollup-plugin-html-import-file-path.git",
-    "rollup-plugin-import-file-path": "git+https://github.com/Ainias/rollup-plugin-import-file-path.git",
-    "rollup-plugin-json": "^3.1.0",
     "cordova-sites-database": "git+https://github.com/Ainias/cordova-sites-database.git",
     "cordova-sites": "git+https://github.com/Ainias/cordova-sites.git",
+    "js-helper": "git+https://github.com/Ainias/js-helper.git",
     "express": "^4.16.4",
     "typeorm": "^0.2.14"
   }

@@ -27,7 +27,6 @@ export class EasySyncBaseModel extends BaseModel {
     }
 
     static async _fromJson(jsonObjects, entities, includeRelations) {
-        // debugger;
 
         entities = entities || [];
         let isArray = Array.isArray(jsonObjects);
