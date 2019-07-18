@@ -2,6 +2,7 @@ import {LastSyncDates} from "./LastSyncDates";
 import {DataManager, Helper} from "cordova-sites";
 import {EasySyncClientDb} from "./EasySyncClientDb";
 import * as _typeorm from "typeorm";
+import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
 
 let typeorm = _typeorm;
 if (typeorm.default) {
@@ -34,7 +35,6 @@ export class SyncJob {
             requestQuery[lastSyncModel.getModel()]["lastSynced"] = lastSyncModel.getLastSynced().getTime();
             lastSyncModels[lastSyncModel.getModel()] = lastSyncModel;
         });
-
 
         //Initialize some variables
         let newLastSynced = null;
@@ -163,10 +163,12 @@ export class SyncJob {
         });
 
         //convert json to entity and save it
-        savePromises.push(modelClass._fromJson(changedModels).then(changedEntities => {
+        savePromises.push(modelClass._fromJson(changedModels).then(async changedEntities => {
             let relations = modelClass.getRelationDefinitions();
 
+            let newIds = [];
             changedEntities.forEach(entity => {
+                newIds.push(entity.id);
                 Object.keys(relations).forEach(relation => {
                     if (entity[relation]) {
                         //if relation should be synced
@@ -185,6 +187,14 @@ export class SyncJob {
                     }
                 })
             });
+
+            if (modelClass.prototype instanceof EasySyncPartialModel){
+                let oldObjects = await modelClass.findByIds(newIds);
+                let keyedEntities = Helper.arrayToObject(changedEntities, changedEntities => changedEntities.id);
+                oldObjects.forEach(old => {
+                    keyedEntities[old.id].clientId = old.clientId;
+                });
+            }
 
             //returns a save of the entities
             return EasySyncClientDb.getInstance().saveEntity(changedEntities).then(res => {
