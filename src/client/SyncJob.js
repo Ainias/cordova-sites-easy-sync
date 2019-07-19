@@ -17,10 +17,11 @@ export class SyncJob {
 
         //initializing query
         let keyedModelClasses = EasySyncClientDb.getModel();
-        modelClasses.forEach(cl => {
+        await Helper.asyncForEach(modelClasses, async cl => {
             modelNames.push(cl.getSchemaName());
             requestQuery[cl.getSchemaName()] = {};
-        });
+            requestQuery[cl.getSchemaName()]["where"] = await cl.getSyncWhere();
+        }, true);
 
         let lastSyncModels = {};
 
@@ -75,6 +76,7 @@ export class SyncJob {
                     newRequestQuery[name] = {};
                     if (requestQuery[name].lastSynced) {
                         newRequestQuery[name].lastSynced = requestQuery[name].lastSynced;
+                        newRequestQuery[name].where = requestQuery[name].where;
                     }
                 }
             });

@@ -118,6 +118,10 @@ export class EasySyncBaseModel extends BaseModel {
         });
         return obj;
     }
+
+    static getSyncWhere(){
+        return undefined;
+    }
 }
 
 EasySyncBaseModel.CAN_BE_SYNCED = true;
