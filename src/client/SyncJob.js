@@ -3,6 +3,7 @@ import {DataManager, Helper} from "cordova-sites";
 import {EasySyncClientDb} from "./EasySyncClientDb";
 import * as _typeorm from "typeorm";
 import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
+import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 
 let typeorm = _typeorm;
 if (typeorm.default) {
@@ -11,36 +12,46 @@ if (typeorm.default) {
 
 export class SyncJob {
 
-    async sync(modelClasses) {
+    async sync(queries) {
         let modelNames = [];
-        let requestQuery = {};
+        let requestQueries = [];
 
         //initializing query
         let keyedModelClasses = EasySyncClientDb.getModel();
-        await Helper.asyncForEach(modelClasses, async cl => {
-            modelNames.push(cl.getSchemaName());
-            requestQuery[cl.getSchemaName()] = {};
-            requestQuery[cl.getSchemaName()]["where"] = await cl.getSyncWhere();
-        }, true);
-
-        let lastSyncModels = {};
+        queries.forEach(query => {
+            if (query.prototype instanceof EasySyncBaseModel) {
+                query = {
+                    model: query,
+                    where: {}
+                }
+            }
+            query.model = query.model.getSchemaName();
+            modelNames.push(query.model);
+            requestQueries.push(query);
+        });
 
         //Load syncModels
         let lastSyncModelsArray = await LastSyncDates.find({
             "model":
                 typeorm.In(modelNames)
         });
-
-        //make to array and update query
-        lastSyncModelsArray.forEach(lastSyncModel => {
-            requestQuery[lastSyncModel.getModel()]["lastSynced"] = lastSyncModel.getLastSynced().getTime();
-            lastSyncModels[lastSyncModel.getModel()] = lastSyncModel;
+        let lastSyncDates = Helper.arrayToObject(lastSyncModelsArray, model => "" + model.getModel() + JSON.stringify(model.where));
+        requestQueries.forEach(query => {
+            let key = "" + query.model + JSON.stringify(query.where);
+            if (Helper.isNull(lastSyncDates[key])) {
+                let lastSyncDate = new LastSyncDates();
+                lastSyncDate.setModel(query.model);
+                lastSyncDate.where = query.where;
+                lastSyncDate.setLastSynced(0);
+                lastSyncDates[key] = lastSyncDate;
+            }
+            query["lastSynced"] = lastSyncDates[key].getLastSynced();
         });
 
         //Initialize some variables
         let newLastSynced = null;
 
-        let results = [];
+        let response = null;
         let offset = 0;
 
         let savePromises = [];
@@ -51,40 +62,31 @@ export class SyncJob {
         //Ask for next run until no more runs needed
         do {
             shouldAskAgain = false;
-            results = await SyncJob._fetchModel(requestQuery, offset);
-            offset = results["nextOffset"];
+            response = await SyncJob._fetchModel(requestQueries, offset);
+            offset = response["nextOffset"];
 
             //Update newLastSynced
-            if (!newLastSynced) {
-                newLastSynced = results["newLastSynced"];
-                modelNames.forEach(name => {
-                    //if old last synced not exists => create it
-                    if (!lastSyncModels[name]) {
-                        lastSyncModels[name] = new LastSyncDates();
-                        lastSyncModels[name].setModel(name);
-                    }
-                    lastSyncModels[name].setLastSynced(new Date(newLastSynced));
+            if (Helper.isNull(newLastSynced)) {
+                newLastSynced = parseInt(response["newLastSynced"]);
+                Object.keys(lastSyncDates).forEach(key => {
+                    lastSyncDates[key].setLastSynced(newLastSynced);
                 });
             }
 
             //create new request query
-            let newRequestQuery = {};
-            modelNames.forEach((name) => {
-                //trigger save of result (and returns if it should run again)
-                if (this._processModelResult(results["models"][name], keyedModelClasses[name], savePromises, relationshipModels)) {
+            let newRequestQueries = [];
+            response.results.forEach((res, i) => {
+                if (this._processModelResult(res, keyedModelClasses[res["model"]], savePromises, relationshipModels)) {
                     shouldAskAgain = true;
-                    newRequestQuery[name] = {};
-                    if (requestQuery[name].lastSynced) {
-                        newRequestQuery[name].lastSynced = requestQuery[name].lastSynced;
-                        newRequestQuery[name].where = requestQuery[name].where;
-                    }
+                    newRequestQueries.push(requestQueries[i]);
                 }
             });
-            requestQuery = newRequestQuery;
-        } while (shouldAskAgain);
+            requestQueries = newRequestQueries;
+        }
+        while (shouldAskAgain) ;
 
         //wait for all saves & deletions (without relations)
-        results = await Promise.all(savePromises);
+        let results = await Promise.all(savePromises);
 
         let relationPromises = [];
         Object.keys(relationshipModels).forEach(modelClassName => {
@@ -121,8 +123,8 @@ export class SyncJob {
 
         //Save new lastSync models
         let lastSyncPromises = [];
-        Object.keys(lastSyncModels).forEach(model => {
-            lastSyncPromises.push(lastSyncModels[model].save())
+        Object.keys(lastSyncDates).forEach(model => {
+            lastSyncPromises.push(lastSyncDates[model].save())
         });
         await Promise.all(lastSyncPromises);
 
@@ -147,11 +149,14 @@ export class SyncJob {
     }
 
     _processModelResult(modelRes, modelClass, savePromises, relationshipModels) {
-        let shouldAskAgain = false;
+        //TODO update?
         if (!modelRes) {
             return false;
         }
-        let name = modelClass.getSchemaName();
+
+        let shouldAskAgain = false;
+        let modelName = modelClass.getSchemaName();
+
         let deletedModelsIds = [];
         let changedModels = [];
 
@@ -177,11 +182,11 @@ export class SyncJob {
                         if (relations[relation].sync !== false) {
 
                             //save relation into specific variable
-                            relationshipModels[name] = Helper.nonNull(relationshipModels[name], {});
-                            relationshipModels[name][entity.id] = Helper.nonNull(relationshipModels[name][entity.id], {});
-                            relationshipModels[name][entity.id]["entity"] = entity;
-                            relationshipModels[name][entity.id]["relations"] = Helper.nonNull(relationshipModels[name][entity.id]["relations"], {});
-                            relationshipModels[name][entity.id]["relations"][relation] = entity[relation];
+                            relationshipModels[modelName] = Helper.nonNull(relationshipModels[modelName], {});
+                            relationshipModels[modelName][entity.id] = Helper.nonNull(relationshipModels[modelName][entity.id], {});
+                            relationshipModels[modelName][entity.id]["entity"] = entity;
+                            relationshipModels[modelName][entity.id]["relations"] = Helper.nonNull(relationshipModels[modelName][entity.id]["relations"], {});
+                            relationshipModels[modelName][entity.id]["relations"][relation] = entity[relation];
                         }
 
                         //clear relation
@@ -190,7 +195,8 @@ export class SyncJob {
                 })
             });
 
-            if (modelClass.prototype instanceof EasySyncPartialModel){
+            //Handle partial Models (different ids on client than server)
+            if (modelClass.prototype instanceof EasySyncPartialModel) {
                 let oldObjects = await modelClass.findByIds(newIds);
                 let keyedEntities = Helper.arrayToObject(changedEntities, changedEntities => changedEntities.id);
                 oldObjects.forEach(old => {
@@ -201,7 +207,7 @@ export class SyncJob {
             //returns a save of the entities
             return EasySyncClientDb.getInstance().saveEntity(changedEntities).then(res => {
                 return {
-                    "model": name,
+                    "model": modelName,
                     "entities": res,
                     "deleted": false
                 };
@@ -214,7 +220,7 @@ export class SyncJob {
         //Deletion of the entities
         savePromises.push(EasySyncClientDb.getInstance().deleteEntity(deletedModelsIds, modelClass).then(res => {
             return {
-                "model": name,
+                "model": modelName,
                 "entities": res,
                 "deleted": true
             };
@@ -231,13 +237,11 @@ export class SyncJob {
     }
 
     static async _fetchModel(query, offset) {
-        let res = await DataManager.load(SyncJob.SYNC_PATH_PREFIX +
+        return await DataManager.load(SyncJob.SYNC_PATH_PREFIX +
             DataManager.buildQuery({
-                "models": JSON.stringify(query),
+                "queries": JSON.stringify(query),
                 "offset": offset
             }));
-
-        return res;
     }
 }
 

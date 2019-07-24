@@ -1,36 +1,37 @@
 import {BaseDatabase, BaseModel} from "cordova-sites-database";
 
-export class LastSyncDates extends BaseModel{
+export class LastSyncDates extends BaseModel {
     constructor() {
         super();
         this.model = "";
-        this.lastSynced = new Date(0);
+        this.lastSynced = 0
         this.where = {};
     }
 
-    getModel(){
+    getModel() {
         return this.model;
     }
 
-    setModel(model){
+    setModel(model) {
         this.model = model;
     }
 
-    getLastSynced(){
+    getLastSynced() {
         return this.lastSynced;
     }
 
-    setLastSynced(lastSynced){
+    setLastSynced(lastSynced) {
         this.lastSynced = lastSynced;
     }
 
     static getColumnDefinitions() {
         let columns = BaseModel.getColumnDefinitions();
-        columns.model = {type: BaseDatabase.TYPES.STRING, nullable:true};
-        columns.lastSynced= {type: BaseDatabase.TYPES.DATE, nullable: true};
-        columns.where= {type: BaseDatabase.TYPES.SIMPLE_JSON};
+        columns.model = {type: BaseDatabase.TYPES.STRING, nullable: true};
+        columns.lastSynced = {type: BaseDatabase.TYPES.INTEGER, nullable: true};
+        columns.where = {type: BaseDatabase.TYPES.SIMPLE_JSON};
         return columns;
     }
 }
-LastSyncDates.SCHEMA_NAME="easy-sync-last-sync-dates";
+
+LastSyncDates.SCHEMA_NAME = "easy-sync-last-sync-dates";
 BaseDatabase.addModel(LastSyncDates);

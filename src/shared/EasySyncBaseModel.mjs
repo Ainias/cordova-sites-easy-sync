@@ -27,7 +27,6 @@ export class EasySyncBaseModel extends BaseModel {
     }
 
     static async _fromJson(jsonObjects, entities, includeRelations) {
-
         entities = entities || [];
         let isArray = Array.isArray(jsonObjects);
         if (!isArray) {
@@ -38,9 +37,9 @@ export class EasySyncBaseModel extends BaseModel {
         }
         let relations = this.getRelationDefinitions();
         let loadPromises = [];
-        let addLoadPromises;
+        let addLoadPromises = [];
         jsonObjects.forEach((jsonObject, index) => {
-             addLoadPromises = new Promise(async resolve => {
+             addLoadPromises.push(new Promise(async resolve => {
                 let entity = null;
                 if (entities.length > index) {
                     entity = entities[index];
@@ -51,7 +50,6 @@ export class EasySyncBaseModel extends BaseModel {
                 if (entity === null) {
                     entity = new this();
                 }
-
                 if (!jsonObject.version) {
                     jsonObject.version = 1;
                 }
@@ -82,10 +80,10 @@ export class EasySyncBaseModel extends BaseModel {
                     }
                 });
                 resolve();
-            });
+            }));
         });
         //addLoadPromises adds other loadPromises. Therefore wait until done, then wait for other
-        await addLoadPromises;
+        await Promise.all(addLoadPromises);
         await Promise.all(loadPromises);
         if (!isArray) {
             entities = (entities.length > 0) ? entities[0] : null;
@@ -117,10 +115,6 @@ export class EasySyncBaseModel extends BaseModel {
             }
         });
         return obj;
-    }
-
-    static getSyncWhere(){
-        return undefined;
     }
 }
 

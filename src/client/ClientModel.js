@@ -16,7 +16,7 @@ export class ClientModel extends BaseModel {
     async save(local) {
         if (!local) {
             let values = this.toJSON();
-            let data = await DataManager.send(ClientModel.SAVE_PATH, {
+            let data = await DataManager.send(this.constructor.SAVE_PATH, {
                 "model": this.constructor.getSchemaName(),
                 "values": values
             });
@@ -32,7 +32,7 @@ export class ClientModel extends BaseModel {
 
     async delete(local){
         if (!local){
-            let data = await DataManager.send(ClientModel.DELETE_PATH, {
+            let data = await DataManager.send(this.constructor.DELETE_PATH, {
                 "model": this.constructor.getSchemaName(),
                 "id": this.id
             });

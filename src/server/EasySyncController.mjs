@@ -1,6 +1,6 @@
 import {EasySyncServerDb} from "./EasySyncServerDb";
 import * as _typeorm from "typeorm";
-import {BaseDatabase} from "cordova-sites-database";
+import {Helper} from "js-helper/dist/shared";
 
 let typeorm = _typeorm;
 if (typeorm.default) {
@@ -21,9 +21,10 @@ export class EasySyncController {
             "updatedAt": typeorm.MoreThan(dateLastSynced),
         });
 
-        let entities = await model.find(where, null, MAX_MODELS_PER_RUN, offset, model.getRelations());
+        let entities = await model.find(where, undefined, MAX_MODELS_PER_RUN, offset, model.getRelations());
 
         return {
+            "model": model.getSchemaName(),
             "newLastSynced": newDateLastSynced,
             "entities": entities,
             "nextOffset": offset + entities.length,
@@ -41,50 +42,50 @@ export class EasySyncController {
         return this._doSyncModel(model, lastSynced, offset, where);
     }
 
-    static async sync(req, res) {
-        let requestedModels = {};
-        let modelClasses = {};
-        if (req.query.models) {
-            requestedModels = JSON.parse(req.query.models);
-            Object.keys(requestedModels).forEach(model => {
-                modelClasses[model] = EasySyncServerDb.getModel(model);
-            });
-        } else {
-            let allModelClasses = EasySyncServerDb.getModel();
-            Object.keys(allModelClasses).forEach(name => {
-                if (allModelClasses[name].CAN_BE_SYNCED !== false) {
-                    requestedModels[name] = {};
-                    modelClasses[name] = allModelClasses[name];
-                }
-            });
+    static async _execQuery(query, offset, req) {
+        let model = null;
+        if (Helper.isNotNull(query.model)) {
+            model = EasySyncServerDb.getModel(query.model);
         }
 
-        //create lastSynced before the queries to db
+        let lastSynced = Helper.nonNull(query.lastSynced, 0);
+        let where = Helper.nonNull(query.where, {});
+        return this._syncModel(model, lastSynced, offset, where, req);
+    }
+
+    static async sync(req, res) {
+        let requestQueries = [];
+        if (req.query.queries) {
+            requestQueries = JSON.parse(req.query.queries);
+        }
+        let offset = Helper.nonNull(req.query.offset, 0);
+
+        //Before execQuery because of newLastSynced set here
         let result = {
             "nextOffset": -1,
-            "models": {},
-            "newLastSynced": new Date().getTime()
+            "newLastSynced": new Date().getTime(),
+            "results": []
         };
 
-        let requests = [];
-        let modelNames = Object.keys(modelClasses);
-        modelNames.forEach(modelName => {
-            requests.push(this._syncModel(modelClasses[modelName], (requestedModels[modelName].lastSynced || 0), (req.query.offset || 0), requestedModels[modelName].where, req));
+        let resultPromises = [];
+        requestQueries.forEach(query => {
+            resultPromises.push(this._execQuery(query, offset, req));
         });
 
-        let results = await Promise.all(requests);
+        let results = await Promise.all(resultPromises);
 
-        results.forEach((res, i) => {
+        results.forEach((res) => {
+            //TODO merging
             if (res.shouldAskAgain) {
                 result.nextOffset = result.nextOffset < 0 ? res.nextOffset : Math.min(res.nextOffset, result.nextOffset);
             }
-            result.models[modelClasses[modelNames[i]].getSchemaName()] = res;
+            result.results.push(res)
         });
 
         res.json(result);
     }
 
-    static async _doModifyModel(model, modelData) {
+    static async _doModifyModel(model, modelData, entities) {
 
         let isArray = true;
         if (!Array.isArray(modelData)) {
@@ -92,8 +93,14 @@ export class EasySyncController {
             modelData = [modelData];
         }
 
+        if (modelData.length > 0 && Helper.isNull(entities) && modelData[0] instanceof model) {
+            entities = modelData;
+        }
+
         //get Entities from JSON
-        let entities = await model._fromJson(modelData, undefined, true);
+        if (Helper.isNull(entities)) {
+            entities = await model._fromJson(modelData, undefined, true);
+        }
 
         //Load already existing entities
         let loadedEntityIds = [];
@@ -127,14 +134,9 @@ export class EasySyncController {
                 entity[rel] = null;
             });
             savePromises.push(entity.save().then(entity => {
-                debugger;
-                console.log("saved ent", entity);
-
                 Object.keys(relations).forEach(rel => {
                     entity[rel] = entityRelations[rel];
                 });
-
-                debugger;
                 return entity.save();
             }));
         });
@@ -164,7 +166,7 @@ export class EasySyncController {
         res.json(await this._doModifyModel(model, modelData));
     }
 
-    static async _doDeleteModel(model, modelIds){
+    static async _doDeleteModel(model, modelIds) {
         if (!Array.isArray(modelIds)) {
             modelIds = [modelIds];
         }
