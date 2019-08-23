@@ -1,4 +1,4 @@
-import express from 'express';
+import * as express from 'express';
 import {EasySyncController} from "./EasySyncController";
 
 const easySyncRoutes = express.Router();

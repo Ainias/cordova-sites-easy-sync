@@ -1,7 +1,10 @@
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
-import {BaseDatabase, BaseModel} from "cordova-sites-database";
+import {BaseDatabase, BaseModel} from "cordova-sites-database/dist/cordova-sites-database";
 
 export class ClientPartialModel extends EasySyncBaseModel{
+
+    clientId: number;
+
     constructor() {
         super();
         this.clientId = null;
@@ -22,8 +25,8 @@ export class ClientPartialModel extends EasySyncBaseModel{
     }
 
     toJSON(includeFull) {
-        let relations = this.constructor.getRelationDefinitions();
-        let columns = this.constructor.getColumnDefinitions();
+        let relations = (<typeof ClientPartialModel>this.constructor).getRelationDefinitions();
+        let columns = (<typeof ClientPartialModel>this.constructor).getColumnDefinitions();
 
         let obj = {};
         Object.keys(columns).forEach(attribute => {

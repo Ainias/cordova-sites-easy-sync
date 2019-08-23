@@ -1,10 +1,12 @@
-import {BaseDatabase} from "cordova-sites-database";
+import {BaseDatabase} from "cordova-sites-database/dist/cordova-sites-database";
 
 export class EasySyncServerDb extends BaseDatabase {
 
+    static CONNECTION_PARAMETERS;
+
     _createConnectionOptions(database) {
         let options = super._createConnectionOptions(database);
-        return Object.assign(options, EasySyncServerDb.CONNECTION_PARAMETERS);
+        return Object["assign"](options, EasySyncServerDb.CONNECTION_PARAMETERS);
     }
 
     async saveEntity(entities) {
@@ -51,7 +53,7 @@ export class EasySyncServerDb extends BaseDatabase {
         return savedEntites;
     }
 
-    async deleteEntity(entities, model, deleteFully) {
+    async deleteEntity(entities, model, deleteFully?) {
         if (deleteFully) {
             return super.deleteEntity(entities, model);
         }

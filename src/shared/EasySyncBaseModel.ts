@@ -1,6 +1,14 @@
-import {BaseModel, BaseDatabase} from "cordova-sites-database";
+import {BaseModel, BaseDatabase} from "cordova-sites-database/dist/cordova-sites-database";
 
 export class EasySyncBaseModel extends BaseModel {
+
+    static CAN_BE_SYNCED: boolean;
+
+    createdAt: Date;
+    updatedAt: Date;
+    version: number;
+    deleted: boolean;
+
     constructor() {
         super();
         this.createdAt = new Date();
@@ -92,8 +100,8 @@ export class EasySyncBaseModel extends BaseModel {
     }
 
     toJSON(includeFull) {
-        let relations = this.constructor.getRelationDefinitions();
-        let columns = this.constructor.getColumnDefinitions();
+        let relations = (<typeof EasySyncBaseModel>this.constructor).getRelationDefinitions();
+        let columns = (<typeof EasySyncBaseModel>this.constructor).getColumnDefinitions();
 
         let obj = {};
         Object.keys(columns).forEach(attribute => {

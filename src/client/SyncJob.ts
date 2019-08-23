@@ -1,16 +1,18 @@
 import {LastSyncDates} from "./LastSyncDates";
-import {DataManager, Helper} from "cordova-sites";
+import {DataManager, Helper} from "cordova-sites/dist/cordova-sites";
 import {EasySyncClientDb} from "./EasySyncClientDb";
 import * as _typeorm from "typeorm";
 import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 
 let typeorm = _typeorm;
-if (typeorm.default) {
-    typeorm = typeorm.default;
-}
+// if (typeorm.default) {
+//     typeorm = typeorm.default;
+// }
 
 export class SyncJob {
+
+    static SYNC_PATH_PREFIX;
 
     async sync(queries) {
         let modelNames = [];
@@ -75,6 +77,7 @@ export class SyncJob {
 
             //create new request query
             let newRequestQueries = [];
+
             response.results.forEach((res, i) => {
                 if (this._processModelResult(res, keyedModelClasses[res["model"]], savePromises, relationshipModels)) {
                     shouldAskAgain = true;

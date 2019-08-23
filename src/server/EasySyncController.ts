@@ -3,9 +3,9 @@ import * as _typeorm from "typeorm";
 import {Helper} from "js-helper/dist/shared";
 
 let typeorm = _typeorm;
-if (typeorm.default) {
-    typeorm = typeorm.default;
-}
+// if (typeorm.default) {
+//     typeorm = typeorm.default;
+// }
 
 const MAX_MODELS_PER_RUN = 50;
 
@@ -17,7 +17,7 @@ export class EasySyncController {
         offset = parseInt(offset);
 
         where = where || {};
-        where = Object.assign(where, {
+        where = Object["assign"](where, {
             "updatedAt": typeorm.MoreThan(dateLastSynced),
         });
 
@@ -85,7 +85,7 @@ export class EasySyncController {
         res.json(result);
     }
 
-    static async _doModifyModel(model, modelData, entities) {
+    static async _doModifyModel(model, modelData, entities?) {
 
         let isArray = true;
         if (!Array.isArray(modelData)) {
@@ -163,7 +163,7 @@ export class EasySyncController {
             throw new Error("tried to sync unsyncable model " + model.getSchemaName());
         }
 
-        res.json(await this._doModifyModel(model, modelData));
+        return res.json(await this._doModifyModel(model, modelData));
     }
 
     static async _doDeleteModel(model, modelIds) {
@@ -186,6 +186,6 @@ export class EasySyncController {
 
         await this._doDeleteModel(model, modelIds);
 
-        res.json({});
+        return res.json({});
     }
 }

@@ -2,9 +2,9 @@ import {EasySyncBaseModel} from "./EasySyncBaseModel";
 import * as _typeorm from "typeorm";
 
 let typeorm = _typeorm;
-if (typeorm.default) {
-    typeorm = typeorm.default;
-}
+// if (typeorm.default) {
+//     typeorm = typeorm.default;
+// }
 
 export class EasySyncPartialModel extends EasySyncBaseModel {
 
