@@ -52,6 +52,28 @@ export class ClientModel extends BaseModel {
         return super.delete();
     }
 
+    static async saveMany(entities, local?){
+        if (!local){
+            let values = [];
+
+            entities.forEach(entity => {
+                values.push(entity.toJSON())
+            });
+
+            let data = await DataManager.send(this.SAVE_PATH, {
+                "model": this.getSchemaName(),
+                "values": values
+            });
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            await this._fromJson(data, undefined, true);
+        }
+
+        return super.saveMany(entities);
+    }
+
     static getSchemaDefinition() {
         let definitions = super.getSchemaDefinition();
 
