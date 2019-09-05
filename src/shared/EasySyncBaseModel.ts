@@ -1,4 +1,5 @@
 import {BaseModel, BaseDatabase} from "cordova-sites-database/dist/cordova-sites-database";
+import { Helper, XSSHelper } from "js-helper/dist/shared";
 
 export class EasySyncBaseModel extends BaseModel {
 
@@ -15,6 +16,32 @@ export class EasySyncBaseModel extends BaseModel {
         this.updatedAt = new Date();
         this.version = 1;
         this.deleted = false;
+    }
+
+    toJSON(includeFull) {
+        let relations = (<typeof EasySyncBaseModel>this.constructor).getRelationDefinitions();
+        let columns = (<typeof EasySyncBaseModel>this.constructor).getColumnDefinitions();
+
+        let obj = {};
+        Object.keys(columns).forEach(attribute => {
+            obj[attribute] = this[attribute];
+        });
+        Object.keys(relations).forEach(relationName => {
+            if (includeFull === true) {
+                obj[relationName] = this[relationName];
+            } else {
+                if (Array.isArray(this[relationName])) {
+                    let ids = [];
+                    this[relationName].forEach(child => (child && ids.push(child.id)));
+                    obj[relationName] = ids;
+                } else if (this[relationName] instanceof BaseModel) {
+                    obj[relationName] = this[relationName].id;
+                } else {
+                    obj[relationName] = null;
+                }
+            }
+        });
+        return obj;
     }
 
     static getColumnDefinitions() {
@@ -43,7 +70,8 @@ export class EasySyncBaseModel extends BaseModel {
         if (!Array.isArray(entities)) {
             entities = [entities];
         }
-        let relations = this.getRelationDefinitions();
+
+
         let loadPromises = [];
         let addLoadPromises = [];
         jsonObjects.forEach((jsonObject, index) => {
@@ -51,7 +79,7 @@ export class EasySyncBaseModel extends BaseModel {
                 let entity = null;
                 if (entities.length > index) {
                     entity = entities[index];
-                } else if (jsonObject.id !== null && jsonObject.id !== undefined) {
+                } else if (Helper.isNotNull(jsonObject.id)) {
                     entity = await this.findById(jsonObject.id, this.getRelations());
                 }
 
@@ -63,30 +91,9 @@ export class EasySyncBaseModel extends BaseModel {
                 }
 
                 entities[index] = Object.assign(entity, jsonObject);
-                Object.keys(relations).forEach(relationName => {
 
-                    let values = entities[index][relationName];
-                    if (typeof values === "number" || (Array.isArray(values) && values.length >= 1 && typeof values[0] === "number")) {
-                        if (includeRelations === true) {
-                            let loadPromise = null;
-                            if (Array.isArray(values)) {
-                                loadPromise = BaseDatabase.getModel(relations[relationName].target).findByIds(values);
-                            } else {
-                                loadPromise = BaseDatabase.getModel(relations[relationName].target).findById(values);
-                            }
-                            loadPromises.push(loadPromise.then(value => {
-                                entities[index][relationName] = value;
-                            }));
-
-                        } else if (includeRelations === false) {
-                            if (relations[relationName].type === "many-to-many" || relations[relationName].type === "one-to-many") {
-                                entities[index][relationName] = [];
-                            } else {
-                                entities[index][relationName] = null;
-                            }
-                        }
-                    }
-                });
+                this._handleColumns(entities[index]);
+                this._handleRelations(entities[index], includeRelations, loadPromises);
                 resolve();
             }));
         });
@@ -99,30 +106,46 @@ export class EasySyncBaseModel extends BaseModel {
         return entities;
     }
 
-    toJSON(includeFull) {
-        let relations = (<typeof EasySyncBaseModel>this.constructor).getRelationDefinitions();
-        let columns = (<typeof EasySyncBaseModel>this.constructor).getColumnDefinitions();
-
-        let obj = {};
-        Object.keys(columns).forEach(attribute => {
-            obj[attribute] = this[attribute];
-        });
+    private static _handleRelations(entity, includeRelations, loadPromises) {
+        let relations = this.getRelationDefinitions();
         Object.keys(relations).forEach(relationName => {
-            if (includeFull === true) {
-                obj[relationName] = this[relationName];
-            } else {
-                if (Array.isArray(this[relationName])) {
-                    let ids = [];
-                    this[relationName].forEach(child => (child && ids.push(child.id)));
-                    obj[relationName] = ids;
-                } else if (this[relationName] instanceof BaseModel) {
-                    obj[relationName] = this[relationName].id;
-                } else {
-                    obj[relationName] = null;
+            let values = entity[relationName];
+            if (typeof values === "number" || (Array.isArray(values) && values.length >= 1 && typeof values[0] === "number")) {
+                if (includeRelations === true) {
+                    let loadPromise = null;
+                    if (Array.isArray(values)) {
+                        loadPromise = BaseDatabase.getModel(relations[relationName].target).findByIds(values);
+                    } else {
+                        loadPromise = BaseDatabase.getModel(relations[relationName].target).findById(values);
+                    }
+                    loadPromises.push(loadPromise.then(value => {
+                        entity[relationName] = value;
+                    }));
+
+                } else if (includeRelations === false) {
+                    if (relations[relationName].type === "many-to-many" || relations[relationName].type === "one-to-many") {
+                        entity[relationName] = [];
+                    } else {
+                        entity[relationName] = null;
+                    }
                 }
             }
         });
-        return obj;
+    }
+
+    private static _handleColumns(entity) {
+        let schemaDefinition = this.getSchemaDefinition();
+        let columns =schemaDefinition["columns"];
+
+        Object.keys(columns).forEach(columnName => {
+            if (columns[columnName].escapeHTML){
+                entity[columnName] = XSSHelper.escapeHTML(entity[columnName]);
+            }
+            if (columns[columnName].escapeJS){
+                entity[columnName] = XSSHelper.escapeJS(entity[columnName]);
+            }
+        })
+
     }
 }
 

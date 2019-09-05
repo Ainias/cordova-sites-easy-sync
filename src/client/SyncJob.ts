@@ -32,23 +32,8 @@ export class SyncJob {
             requestQueries.push(query);
         });
 
-        //Load syncModels
-        let lastSyncModelsArray = await LastSyncDates.find({
-            "model":
-                typeorm.In(modelNames)
-        });
-        let lastSyncDates = Helper.arrayToObject(lastSyncModelsArray, model => "" + model.getModel() + JSON.stringify(model.where));
-        requestQueries.forEach(query => {
-            let key = "" + query.model + JSON.stringify(query.where);
-            if (Helper.isNull(lastSyncDates[key])) {
-                let lastSyncDate = new LastSyncDates();
-                lastSyncDate.setModel(query.model);
-                lastSyncDate.where = query.where;
-                lastSyncDate.setLastSynced(0);
-                lastSyncDates[key] = lastSyncDate;
-            }
-            query["lastSynced"] = lastSyncDates[key].getLastSynced();
-        });
+
+        let lastSyncDates = await this._getLastSyncModels(modelNames, requestQueries);
 
         //Initialize some variables
         let newLastSynced = null;
@@ -151,8 +136,29 @@ export class SyncJob {
         return finalRes;
     }
 
+    private async _getLastSyncModels(modelNames, requestQueries) {
+        //Load syncModels
+        let lastSyncModelsArray = await LastSyncDates.find({
+            "model":
+                typeorm.In(modelNames)
+        });
+
+        let lastSyncDates = Helper.arrayToObject(lastSyncModelsArray, model => "" + model.getModel() + JSON.stringify(model.where));
+        requestQueries.forEach(query => {
+            let key = "" + query.model + JSON.stringify(query.where);
+            if (Helper.isNull(lastSyncDates[key])) {
+                let lastSyncDate = new LastSyncDates();
+                lastSyncDate.setModel(query.model);
+                lastSyncDate.where = query.where;
+                lastSyncDate.setLastSynced(0);
+                lastSyncDates[key] = lastSyncDate;
+            }
+            query["lastSynced"] = lastSyncDates[key].getLastSynced();
+        });
+        return lastSyncDates;
+    }
+
     _processModelResult(modelRes, modelClass, savePromises, relationshipModels) {
-        //TODO update?
         if (!modelRes) {
             return false;
         }

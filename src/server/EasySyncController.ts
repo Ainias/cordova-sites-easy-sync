@@ -82,7 +82,7 @@ export class EasySyncController {
             result.results.push(res)
         });
 
-        res.json(result);
+        return res.json(result);
     }
 
     static async _doModifyModel(model, modelData, entities?) {

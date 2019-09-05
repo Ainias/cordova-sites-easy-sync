@@ -1,6 +1,6 @@
-// import {BaseDatabase, BaseModel} from "cordova-sites-database";
 import {BaseDatabase, BaseModel} from "cordova-sites-database/dist/cordova-sites-database";
 import {DataManager} from "cordova-sites/dist/cordova-sites";
+import {Helper} from "js-helper/dist/shared";
 
 export class ClientModel extends BaseModel {
 
@@ -52,8 +52,8 @@ export class ClientModel extends BaseModel {
         return super.delete();
     }
 
-    static async saveMany(entities, local?){
-        if (!local){
+    static async saveMany(entities, local?) {
+        if (!local) {
             let values = [];
 
             entities.forEach(entity => {
@@ -75,15 +75,28 @@ export class ClientModel extends BaseModel {
     }
 
     static getSchemaDefinition() {
-        let definitions = super.getSchemaDefinition();
+        const TYPES_FOR_DEFAULT_ESCAPING = [
+            BaseDatabase.TYPES.MEDIUMTEXT,
+            BaseDatabase.TYPES.STRING,
+            BaseDatabase.TYPES.TEXT,
+        ];
 
-        Object.keys(definitions.columns).forEach(column => {
-            if (definitions.columns[column].type === BaseDatabase.TYPES.MEDIUMTEXT) {
-                definitions.columns[column].type = BaseDatabase.TYPES.TEXT;
+        let definitions = super.getSchemaDefinition();
+        let columns = definitions["columns"];
+
+        Object.keys(columns).forEach(column => {
+            if (columns[column].type === BaseDatabase.TYPES.MEDIUMTEXT) {
+                columns[column].type = BaseDatabase.TYPES.TEXT;
             }
-            if (definitions.columns[column].type === BaseDatabase.TYPES.JSON) {
-                definitions.columns[column].type = BaseDatabase.TYPES.SIMPLE_JSON;
+            if (columns[column].type === BaseDatabase.TYPES.JSON) {
+                columns[column].type = BaseDatabase.TYPES.SIMPLE_JSON;
             }
+
+            if (TYPES_FOR_DEFAULT_ESCAPING.indexOf(columns[column].type) !== -1) {
+                columns[column].escapeJS = Helper.nonNull(columns[column].escapeJS, true);
+                columns[column].escapeHTML = Helper.nonNull(columns[column].escapeHTML, true);
+            }
+
         });
         return definitions;
     }
