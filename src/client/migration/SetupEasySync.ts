@@ -1,10 +1,10 @@
 import {MigrationInterface, QueryRunner, Table} from "typeorm";
 import {BaseDatabase} from "cordova-sites-database/dist/cordova-sites-database";
 
-export class SetupEasySync1566377719950 implements MigrationInterface {
+export class SetupEasySync1000000000500 implements MigrationInterface {
 
     async up(queryRunner: QueryRunner): Promise<any> {
-        await queryRunner.dropTable("las_sync_dates", true);
+        await queryRunner.dropTable("last_sync_dates", true);
         await this._addLastSyncDates(queryRunner);
     }
 
@@ -16,6 +16,7 @@ export class SetupEasySync1566377719950 implements MigrationInterface {
                 {
                     name: "id",
                     isGenerated: true,
+                    generationStrategy: "increment" as "increment",
                     isPrimary: true,
                     type: BaseDatabase.TYPES.INTEGER,
                 },
