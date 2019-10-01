@@ -8,17 +8,16 @@ export class SetupEasySync1000000000500 implements MigrationInterface {
         await this._addLastSyncDates(queryRunner);
     }
 
-
     async _addLastSyncDates(queryRunner: QueryRunner) {
         let lastSyncDatesTable = new Table({
             name: "last_sync_dates",
             columns: [
                 {
                     name: "id",
+                    type: "INTEGER",
+                    isPrimary: true,
                     isGenerated: true,
                     generationStrategy: "increment" as "increment",
-                    isPrimary: true,
-                    type: BaseDatabase.TYPES.INTEGER,
                 },
                 {
                     name: "model",
