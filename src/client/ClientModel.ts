@@ -68,7 +68,7 @@ export class ClientModel extends BaseModel {
             if (data.error) {
                 throw new Error(data.error);
             }
-            await this._fromJson(data, undefined, true);
+            entities = await this._fromJson(data, undefined, true);
         }
 
         return super.saveMany(entities);
@@ -96,7 +96,6 @@ export class ClientModel extends BaseModel {
                 columns[column].escapeJS = Helper.nonNull(columns[column].escapeJS, true);
                 columns[column].escapeHTML = Helper.nonNull(columns[column].escapeHTML, true);
             }
-
         });
         return definitions;
     }
