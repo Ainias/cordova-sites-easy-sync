@@ -1,10 +1,11 @@
 import {MenuSite} from "cordova-sites/src/client/js/Context/MenuSite";
 import {Form} from "cordova-sites/src/client/js/Form";
 import {Helper} from "js-helper/src/shared/Helper";
+import {EasySyncBaseModel} from "../../shared/EasySyncBaseModel";
 
 export class ModifyEntitySite extends MenuSite {
 
-    constructor(siteManager, view, menuTemplate) {
+    constructor(siteManager, view, model, menuTemplate) {
         super(siteManager, view, menuTemplate);
         this._formSelector = ".entity-form";
         this._ckEditorConfig = {
@@ -16,6 +17,35 @@ export class ModifyEntitySite extends MenuSite {
         };
 
         this._entity = null;
+        this._model = model;
+    }
+
+    async getEntityFromParameters(constructParameters) {
+
+        if (!(this._model.prototype instanceof EasySyncBaseModel)) {
+            throw {
+                "error": "wrong class given! Expected EasySyncBaseModel, given " + this._model.name
+            };
+        }
+
+        let entity = null;
+        if (Helper.isSet(constructParameters, "id")) {
+            entity = this._model.findById(constructParameters["id"], this._model.getRelations());
+        }
+
+        if (Helper.isNull(entity)) {
+            entity = new this._model();
+        }
+        return entity;
+    }
+
+    async onConstruct(constructParameters) {
+        let res = super.onConstruct(constructParameters);
+        let entity = await this.getEntityFromParameters(constructParameters);
+        if (entity !== null) {
+            this.setEntity(entity);
+        }
+        return res;
     }
 
     async setEntity(entity) {
