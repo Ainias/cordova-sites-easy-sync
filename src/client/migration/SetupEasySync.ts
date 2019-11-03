@@ -14,7 +14,7 @@ export class SetupEasySync1000000000500 implements MigrationInterface {
             columns: [
                 {
                     name: "id",
-                    type: BaseDatabase.TYPES.INTEGER,
+                    type: "Integer",
                     isPrimary: true,
                     isGenerated: true,
                     generationStrategy: "increment" as "increment",
