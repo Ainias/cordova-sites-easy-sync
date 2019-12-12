@@ -1,5 +1,6 @@
 import {LastSyncDates} from "./LastSyncDates";
-import {DataManager, Helper} from "cordova-sites/dist/cordova-sites";
+import {DataManager} from "cordova-sites/dist/cordova-sites";
+import {Helper, JsonHelper} from "js-helper";
 import {EasySyncClientDb} from "./EasySyncClientDb";
 import * as _typeorm from "typeorm";
 import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
@@ -16,16 +17,35 @@ export class SyncJob {
     _syncedModels = {};
     _modelNames = [];
     _relationshipModels = {};
-    _lastSyncDates = {};
+    _lastSyncDates: any = null;
     _keyedModelClasses = {};
     _savePromises = [];
+
+    async syncInBackgroundIfDataExists(queries) {
+        this._keyedModelClasses = EasySyncClientDb.getModel();
+
+        let copiedQuery = JsonHelper.deepCopy(queries);
+
+        let requestQueries = this._buildRequestQuery(copiedQuery);
+        this._lastSyncDates = await this._getLastSyncModels(this._modelNames, requestQueries);
+
+        let syncPromise = this.sync(queries);
+
+        if (Object["values"](this._lastSyncDates).some(lastSync => {
+            return lastSync["getLastSynced"]() === 0;
+        })){
+            await syncPromise;
+        }
+    }
 
     async sync(queries) {
 
         this._keyedModelClasses = EasySyncClientDb.getModel();
 
         let requestQueries = this._buildRequestQuery(queries);
-        this._lastSyncDates = await this._getLastSyncModels(this._modelNames, requestQueries);
+        if (Helper.isNull(this._lastSyncDates)) {
+            this._lastSyncDates = await this._getLastSyncModels(this._modelNames, requestQueries);
+        }
 
         let saveResults = await this._doRuns(requestQueries);
         await this._handleRelations();
