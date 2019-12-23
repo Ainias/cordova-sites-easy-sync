@@ -1,5 +1,6 @@
 import {LastSyncDates} from "./LastSyncDates";
-import {DataManager, Helper} from "cordova-sites/dist/cordova-sites";
+import {DataManager} from "cordova-sites/dist/cordova-sites";
+import {Helper, JsonHelper} from "js-helper";
 import {EasySyncClientDb} from "./EasySyncClientDb";
 import * as _typeorm from "typeorm";
 import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
@@ -20,7 +21,27 @@ export class SyncJob {
     _keyedModelClasses = {};
     _savePromises = [];
 
+    async syncInBackgroundIfDataExists(queries) {
+        this._keyedModelClasses = EasySyncClientDb.getModel();
+
+        let copiedQuery = JsonHelper.deepCopy(queries);
+
+        let requestQueries = this._buildRequestQuery(copiedQuery);
+        this._lastSyncDates = await this._getLastSyncModels(this._modelNames, requestQueries);
+
+        let syncPromise = this.sync(queries);
+
+        if (Object["values"](this._lastSyncDates).some(lastSync => {
+            return lastSync["getLastSynced"]() === 0;
+        })){
+            await syncPromise;
+        }
+    }
+
     async sync(queries) {
+
+        // let loadingAction = new MenuAction("loading...", () => {});
+        // NavbarFragment.defaultActions.push(loadingAction);
 
         this._keyedModelClasses = EasySyncClientDb.getModel();
 
@@ -36,8 +57,6 @@ export class SyncJob {
             lastSyncPromises.push(this._lastSyncDates[model].save())
         });
         await Promise.all(lastSyncPromises);
-
-        console.log(saveResults);
 
         //Calculate final result and give it back
         let finalRes = {};
