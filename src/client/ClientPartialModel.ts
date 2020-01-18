@@ -4,9 +4,12 @@ import {ClientModel} from "./ClientModel";
 import {DataManager} from "cordova-sites/dist/cordova-sites";
 import {Helper} from "js-helper/dist/shared/Helper";
 
-export class ClientPartialModel extends ClientModel {
+export class ClientPartialModel extends EasySyncBaseModel {
 
     clientId: number;
+
+    static SAVE_PATH: string;
+    static DELETE_PATH: string;
 
     constructor() {
         super();
@@ -57,7 +60,7 @@ export class ClientPartialModel extends ClientModel {
         return obj;
     }
 
-    async save(local): Promise<any> {
+    async save(local?): Promise<any> {
         local = Helper.nonNull(local, true);
 
         if (typeof this.clientId !== "number"){
@@ -76,7 +79,7 @@ export class ClientPartialModel extends ClientModel {
             }
         }
 
-        return super.save(true);
+        return super.save.call(this, true);
     }
 
     async delete(local?) {
@@ -91,7 +94,7 @@ export class ClientPartialModel extends ClientModel {
             }
         }
 
-        return super.delete(true);
+        return super.delete.call(this, true);
     }
 
     static async saveMany(entities, local?) {
@@ -120,6 +123,6 @@ export class ClientPartialModel extends ClientModel {
             }
         }
 
-        return super.saveMany(entities, true);
+        return super.saveMany.call(this, entities, true);
     }
 }
