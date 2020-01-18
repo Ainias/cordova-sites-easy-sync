@@ -18,7 +18,7 @@ export class ClientModel extends BaseModel {
     static async _fromJson(jsonObjects, models, includeRelations) {
     }
 
-    toJSON() {
+    toJSON(includeFull?) {
     };
 
     async save(local?) {
