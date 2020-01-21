@@ -21,6 +21,8 @@ export class SyncJob {
     _keyedModelClasses = {};
     _savePromises = [];
 
+    _syncPromise;
+
     async syncInBackgroundIfDataExists(queries) {
         this._keyedModelClasses = EasySyncClientDb.getModel();
 
@@ -29,13 +31,17 @@ export class SyncJob {
         let requestQueries = this._buildRequestQuery(copiedQuery);
         this._lastSyncDates = await this._getLastSyncModels(this._modelNames, requestQueries);
 
-        let syncPromise = this.sync(queries);
+        this._syncPromise = this.sync(queries);
 
         if (Object["values"](this._lastSyncDates).some(lastSync => {
             return lastSync["getLastSynced"]() === 0;
         })){
-            await syncPromise;
+            await this._syncPromise;
         }
+    }
+
+    async getSyncPromise(){
+        return this._syncPromise;
     }
 
     async sync(queries) {
