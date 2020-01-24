@@ -45,10 +45,6 @@ export class SyncJob {
     }
 
     async sync(queries) {
-
-        // let loadingAction = new MenuAction("loading...", () => {});
-        // NavbarFragment.defaultActions.push(loadingAction);
-
         this._keyedModelClasses = EasySyncClientDb.getModel();
 
         let requestQueries = this._buildRequestQuery(queries);
@@ -136,37 +132,13 @@ export class SyncJob {
                 let relations = this._relationshipModels[modelClassName][id]["relations"];
                 let entityRelationPromises = [];
 
-                //foreach relation load other models and save them here
                 Object.keys(relations).forEach(relation => {
-                    let valuePromise = Promise.resolve(undefined);
-                    let target = relationDefinitions[relation]["target"];
-                    let shouldSync = (relationDefinitions[relation].sync !== false);
 
-                    if (Array.isArray(relations[relation])) {
-                        if (shouldSync || relations[relation].every(id => !Helper.isSet(this._syncedModels, target, id))) {
-                            valuePromise = this._keyedModelClasses[target].findByIds(relations[relation]);
-                        } else {
-                            let targetRelationDefinition = this._keyedModelClasses[target].getRelationDefinitions()[relationDefinitions[relation]["inverseSide"]];
-                            relations[relation].filter(id => !Helper.isSet(this._relationshipModels, target, id)).forEach(id => {
-                                mergedRelations[target] = Helper.nonNull(mergedRelations[target], {});
-                                mergedRelations[target][id] = Helper.nonNull(mergedRelations[target][id], {});
-
-                                let otherRelationValue = null;
-                                if (targetRelationDefinition.type === "many-to-many" || targetRelationDefinition.type === "one-to-many") {
-                                    otherRelationValue = Helper.nonNull(mergedRelations[target][id][relationDefinitions[relation]["inverseSide"]], []);
-                                    otherRelationValue.push(entity);
-                                } else {
-                                    otherRelationValue = entity;
-                                }
-                                mergedRelations[target][id][relationDefinitions[relation]["inverseSide"]] = otherRelationValue;
-                            });
-                        }
-                    } else if (shouldSync || !Helper.isSet(this._syncedModels, target, relations[relation])) {
-                        valuePromise = this._keyedModelClasses[target].findById(relations[relation]);
-                    }
+                    //foreach relation load other models and save them here
+                    let valuePromise = this._handleSingleRelation(relationDefinitions, relation, relations, mergedRelations, entity);
 
                     entityRelationPromises.push(valuePromise.then(value => {
-                        entity[relation] = value;
+                            entity[relation] = value;
                     }));
                 });
 
@@ -181,12 +153,13 @@ export class SyncJob {
         await Promise.all(relationPromises);
 
         await Helper.asyncForEach(Object.keys(mergedRelations), async model => {
-            let entities = Helper.arrayToObject(await this._keyedModelClasses[model].findByIds(Object.keys(mergedRelations[model])), e => e.id);
+            let entities = Helper.arrayToObject(await this._keyedModelClasses[model].findByIds(Object.keys(mergedRelations[model]), this._keyedModelClasses[model].getRelations()), e => e.id);
             Object.keys(mergedRelations[model]).forEach(id => {
                 if (entities[id]) {
                     Object.keys(mergedRelations[model][id]).forEach(relation => {
                         if (Array.isArray(mergedRelations[model][id][relation])) {
-                            entities[id][relation] = [].push.apply(Helper.nonNull(entities[id][relation], []), mergedRelations[model][id][relation])
+                            entities[id][relation] = Helper.nonNull(entities[id][relation], []);
+                            entities[id][relation].push.apply(entities[id][relation], mergedRelations[model][id][relation])
                         } else {
                             entities[id][relation] = mergedRelations[model][id][relation];
                         }
@@ -197,6 +170,43 @@ export class SyncJob {
         }, true);
     }
 
+    private _handleSingleRelation(relationDefinitions, relationName: string, relations, mergedRelations: {}, entity) {
+        let valuePromise = Promise.resolve(undefined);
+        let target = relationDefinitions[relationName]["target"];
+        let shouldSync = (relationDefinitions[relationName].sync !== false);
+
+        //is relation a *-to-many relation?
+        if (Array.isArray(relations[relationName])) {
+            if (shouldSync || relations[relationName].every(id => !Helper.isSet(this._syncedModels, target, id))) {
+                valuePromise = this._keyedModelClasses[target].findByIds(relations[relationName]);
+            } else {
+                let targetRelationDefinition = this._keyedModelClasses[target].getRelationDefinitions()[relationDefinitions[relationName]["inverseSide"]];
+                relations[relationName].filter(id => !Helper.isSet(this._relationshipModels, target, id)).forEach(id => {
+                    mergedRelations[target] = Helper.nonNull(mergedRelations[target], {});
+                    mergedRelations[target][id] = Helper.nonNull(mergedRelations[target][id], {});
+
+                    let otherRelationValue = null;
+                    if (targetRelationDefinition.type === "many-to-many" || targetRelationDefinition.type === "one-to-many") {
+                        otherRelationValue = Helper.nonNull(mergedRelations[target][id][relationDefinitions[relationName]["inverseSide"]], []);
+                        otherRelationValue.push(entity);
+                    } else {
+                        otherRelationValue = entity;
+                    }
+                    mergedRelations[target][id][relationDefinitions[relationName]["inverseSide"]] = otherRelationValue;
+                });
+            }
+        } else if (shouldSync || !Helper.isSet(this._syncedModels, target, relations[relationName])) {
+            valuePromise = this._keyedModelClasses[target].findById(relations[relationName]);
+        }
+        return valuePromise;
+    }
+
+    /**
+     * Extract the Entities and saves them(?) for one model
+     *
+     * @param modelRes
+     * @private
+     */
     private _extractEntities(modelRes) {
         if (!modelRes) {
             return false;
