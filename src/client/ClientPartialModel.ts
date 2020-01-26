@@ -1,9 +1,15 @@
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 import {BaseDatabase, BaseModel} from "cordova-sites-database/dist/cordova-sites-database";
+import {ClientModel} from "./ClientModel";
+import {DataManager} from "cordova-sites/dist/cordova-sites";
+import {Helper} from "js-helper/dist/shared/Helper";
 
-export class ClientPartialModel extends EasySyncBaseModel{
+export class ClientPartialModel extends EasySyncBaseModel {
 
     clientId: number;
+
+    static SAVE_PATH: string;
+    static DELETE_PATH: string;
 
     constructor() {
         super();
@@ -18,13 +24,15 @@ export class ClientPartialModel extends EasySyncBaseModel{
             columns["id"]["nullable"] = true;
         }
         columns["clientId"] = {
-            type: BaseDatabase.TYPES.INTEGER,
-            primary: true
+            type: "integer",
+            primary: true,
+            generated: true,
         };
+
         return columns;
     }
 
-    toJSON(includeFull) {
+    toJSON(includeFull?) {
         let relations = (<typeof ClientPartialModel>this.constructor).getRelationDefinitions();
         let columns = (<typeof ClientPartialModel>this.constructor).getColumnDefinitions();
 
@@ -50,5 +58,71 @@ export class ClientPartialModel extends EasySyncBaseModel{
             }
         });
         return obj;
+    }
+
+    async save(local?): Promise<any> {
+        local = Helper.nonNull(local, true);
+
+        if (typeof this.clientId !== "number"){
+            this.clientId = undefined;
+        }
+
+        if (!local) {
+            let values = this.toJSON();
+            let data = await DataManager.send((<typeof ClientModel>this.constructor).SAVE_PATH, {
+                "model": (<typeof ClientModel>this.constructor).getSchemaName(),
+                "values": values
+            });
+
+            if (!data.error) {
+                await (<typeof ClientModel>this.constructor)._fromJson(data, this, true);
+            }
+        }
+
+        return super.save.call(this, true);
+    }
+
+    async delete(local?) {
+
+        if (!local) {
+            let data = await DataManager.send((<typeof ClientModel>this.constructor).DELETE_PATH, {
+                "model": (<typeof ClientModel>this.constructor).getSchemaName(),
+                "id": this.id
+            });
+            if (data.error) {
+                throw new Error(data.error);
+            }
+        }
+
+        return super.delete.call(this, true);
+    }
+
+    static async saveMany(entities, local?) {
+        local = Helper.nonNull(local, true);
+
+        entities.forEach(entity => {
+            if (typeof entity.clientId !== "number"){
+                entity.clientId = undefined;
+            }
+        });
+
+        if (!local) {
+            let values = [];
+
+            entities.forEach(entity => {
+                values.push(entity.toJSON())
+            });
+
+            let data = await DataManager.send(this.SAVE_PATH, {
+                "model": this.getSchemaName(),
+                "values": values
+            });
+
+            if (!data.error) {
+                entities = await this._fromJson(data, undefined, true);
+            }
+        }
+
+        return super.saveMany.call(this, entities, true);
     }
 }

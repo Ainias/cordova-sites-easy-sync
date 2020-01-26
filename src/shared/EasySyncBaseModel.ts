@@ -71,7 +71,6 @@ export class EasySyncBaseModel extends BaseModel {
             entities = [entities];
         }
 
-
         let loadPromises = [];
         let addLoadPromises = [];
         jsonObjects.forEach((jsonObject, index) => {
