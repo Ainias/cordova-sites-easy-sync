@@ -1,7 +1,7 @@
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 import {BaseDatabase, BaseModel} from "cordova-sites-database/dist/cordova-sites-database";
 import {ClientModel} from "./ClientModel";
-import {DataManager} from "cordova-sites/dist/cordova-sites";
+import {DataManager} from "cordova-sites/dist/client";
 import {Helper} from "js-helper/dist/shared/Helper";
 
 export class ClientPartialModel extends EasySyncBaseModel {

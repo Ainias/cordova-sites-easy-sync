@@ -1,4 +1,4 @@
-import {App} from "cordova-sites/dist/cordova-sites";
+import {App} from "cordova-sites/dist/client";
 import {BaseDatabase} from "cordova-sites-database/dist/cordova-sites-database";
 import {ClientModel} from "./ClientModel";
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
@@ -10,8 +10,9 @@ declare var JSObject;
 export class EasySyncClientDb extends BaseDatabase {
 
     static BASE_MODEL;
+    static errorListener;
 
-    constructor(dbName) {
+    constructor(dbName?) {
         super(dbName || "EasySync");
     }
 
@@ -21,11 +22,19 @@ export class EasySyncClientDb extends BaseDatabase {
         JSObject.setPrototypeOf(EasySyncBaseModel.prototype, ClientModel.prototype);
         JSObject.setPrototypeOf(EasySyncPartialModel.prototype, ClientPartialModel.prototype);
 
-        return super._createConnectionOptions(database);
+        let options = super._createConnectionOptions(database);
+        options["migrationsTableName"] = "migrations";
+        return options;
     }
 }
 
 EasySyncClientDb.BASE_MODEL = null;
 App.addInitialization(async () => {
-    await EasySyncClientDb.getInstance()._connectionPromise;
+    await EasySyncClientDb.getInstance()._connectionPromise.catch(function (e) {
+        if (typeof EasySyncClientDb.errorListener === "function") {
+            return EasySyncClientDb.errorListener(...arguments)
+        } else {
+            throw(e);
+        }
+    });
 });

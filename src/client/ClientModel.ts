@@ -1,5 +1,5 @@
 import {BaseDatabase, BaseModel} from "cordova-sites-database/dist/cordova-sites-database";
-import {DataManager} from "cordova-sites/dist/cordova-sites";
+import {DataManager} from "cordova-sites/dist/client";
 import {Helper} from "js-helper/dist/shared";
 
 export class ClientModel extends BaseModel {
@@ -34,7 +34,6 @@ export class ClientModel extends BaseModel {
             }
             await (<typeof ClientModel>this.constructor)._fromJson(data, this, true);
         }
-
         return super.save();
     }
 

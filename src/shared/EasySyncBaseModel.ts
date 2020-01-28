@@ -4,11 +4,13 @@ import { Helper, XSSHelper } from "js-helper/dist/shared";
 export class EasySyncBaseModel extends BaseModel {
 
     static CAN_BE_SYNCED: boolean;
+    static delegateClass = null;
 
     createdAt: Date;
     updatedAt: Date;
     version: number;
     deleted: boolean;
+    _delegate = null;
 
     constructor() {
         super();

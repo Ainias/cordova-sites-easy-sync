@@ -1,6 +1,6 @@
 import {LastSyncDates} from "./LastSyncDates";
-import {DataManager} from "cordova-sites/dist/cordova-sites";
-import {Helper, JsonHelper} from "js-helper";
+import {DataManager} from "cordova-sites/dist/client";
+import {Helper, JsonHelper} from "js-helper/dist/shared";
 import {EasySyncClientDb} from "./EasySyncClientDb";
 import * as _typeorm from "typeorm";
 import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";

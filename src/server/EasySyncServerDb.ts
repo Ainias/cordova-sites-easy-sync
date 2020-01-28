@@ -1,4 +1,4 @@
-import {BaseDatabase} from "cordova-sites-database/dist/cordova-sites-database";
+import {BaseDatabase} from "cordova-sites-database";
 
 export class EasySyncServerDb extends BaseDatabase {
 
