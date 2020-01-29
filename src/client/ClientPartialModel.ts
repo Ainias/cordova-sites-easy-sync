@@ -74,7 +74,7 @@ export class ClientPartialModel extends EasySyncBaseModel {
                 "values": values
             });
 
-            if (!data.error) {
+            if (data.success !== false) {
                 await (<typeof ClientModel>this.constructor)._fromJson(data, this, true);
             }
         }
@@ -89,8 +89,8 @@ export class ClientPartialModel extends EasySyncBaseModel {
                 "model": (<typeof ClientModel>this.constructor).getSchemaName(),
                 "id": this.id
             });
-            if (data.error) {
-                throw new Error(data.error);
+            if (data.success === false) {
+                throw new Error(data.errors);
             }
         }
 
@@ -118,8 +118,8 @@ export class ClientPartialModel extends EasySyncBaseModel {
                 "values": values
             });
 
-            if (!data.error) {
-                entities = await this._fromJson(data, undefined, true);
+            if (data.success !== false) {
+                entities = await this._fromJson(data, entities, true);
             }
         }
 
