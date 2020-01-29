@@ -29,8 +29,8 @@ export class ClientModel extends BaseModel {
                 "values": values
             });
 
-            if (data.error) {
-                throw new Error(data.error);
+            if (data.success === false) {
+                throw new Error(data.errors);
             }
             await (<typeof ClientModel>this.constructor)._fromJson(data, this, true);
         }
@@ -44,8 +44,8 @@ export class ClientModel extends BaseModel {
                 "model": (<typeof ClientModel>this.constructor).getSchemaName(),
                 "id": this.id
             });
-            if (data.error) {
-                throw new Error(data.error);
+            if (data.success === false) {
+                throw new Error(data.errors);
             }
         }
 
@@ -65,8 +65,8 @@ export class ClientModel extends BaseModel {
                 "values": values
             });
 
-            if (data.error) {
-                throw new Error(data.error);
+            if (data.success === false) {
+                throw new Error(data.errors);
             }
             entities = await this._fromJson(data, undefined, true);
         }
