@@ -93,6 +93,10 @@ export class EasySyncController {
             modelData = [modelData];
         }
 
+        if (modelData.length === 0){
+            return [];
+        }
+
         if (modelData.length > 0 && Helper.isNull(entities) && modelData[0] instanceof model) {
             entities = modelData;
         }
