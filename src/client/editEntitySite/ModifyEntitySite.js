@@ -1,5 +1,5 @@
-import {MenuSite} from "cordova-sites/src/client/js/Context/MenuSite";
-import {Form} from "cordova-sites/src/client/js/Form";
+import {MenuSite} from "cordova-sites/dist/client/js/Context/MenuSite";
+import {Form} from "cordova-sites/dist/client/js/Form";
 import {Helper} from "js-helper";
 import {EasySyncBaseModel} from "../../shared/EasySyncBaseModel";
 
