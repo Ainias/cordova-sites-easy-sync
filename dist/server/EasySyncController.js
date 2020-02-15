@@ -16,7 +16,6 @@ let typeorm = _typeorm;
 // if (typeorm.default) {
 //     typeorm = typeorm.default;
 // }
-const MAX_MODELS_PER_RUN = 50;
 class EasySyncController {
     static _doSyncModel(model, lastSynced, offset, where) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -27,13 +26,13 @@ class EasySyncController {
             where = Object["assign"](where, {
                 "updatedAt": typeorm.MoreThan(dateLastSynced),
             });
-            let entities = yield model.find(where, undefined, MAX_MODELS_PER_RUN, offset, model.getRelations());
+            let entities = yield model.find(where, undefined, this.MAX_MODELS_PER_RUN, offset, model.getRelations());
             return {
                 "model": model.getSchemaName(),
                 "newLastSynced": newDateLastSynced,
                 "entities": entities,
                 "nextOffset": offset + entities.length,
-                "shouldAskAgain": entities.length === MAX_MODELS_PER_RUN
+                "shouldAskAgain": entities.length === this.MAX_MODELS_PER_RUN
             };
         });
     }
@@ -185,4 +184,5 @@ class EasySyncController {
     }
 }
 exports.EasySyncController = EasySyncController;
+EasySyncController.MAX_MODELS_PER_RUN = 50;
 //# sourceMappingURL=EasySyncController.js.map

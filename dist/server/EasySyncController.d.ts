@@ -1,4 +1,5 @@
 export declare class EasySyncController {
+    static MAX_MODELS_PER_RUN: number;
     static _doSyncModel(model: any, lastSynced: any, offset: any, where: any): Promise<{
         "model": any;
         "newLastSynced": number;

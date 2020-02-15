@@ -7,9 +7,8 @@ let typeorm = _typeorm;
 //     typeorm = typeorm.default;
 // }
 
-const MAX_MODELS_PER_RUN = 50;
-
 export class EasySyncController {
+    static MAX_MODELS_PER_RUN: number = 50;
 
     static async _doSyncModel(model, lastSynced, offset, where) {
         let dateLastSynced = new Date(parseInt(lastSynced || 0));
@@ -21,14 +20,14 @@ export class EasySyncController {
             "updatedAt": typeorm.MoreThan(dateLastSynced),
         });
 
-        let entities = await model.find(where, undefined, MAX_MODELS_PER_RUN, offset, model.getRelations());
+        let entities = await model.find(where, undefined, this.MAX_MODELS_PER_RUN, offset, model.getRelations());
 
         return {
             "model": model.getSchemaName(),
             "newLastSynced": newDateLastSynced,
             "entities": entities,
             "nextOffset": offset + entities.length,
-            "shouldAskAgain": entities.length === MAX_MODELS_PER_RUN
+            "shouldAskAgain": entities.length === this.MAX_MODELS_PER_RUN
         };
     }
 
