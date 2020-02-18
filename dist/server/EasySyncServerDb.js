@@ -10,8 +10,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const cordova_sites_database_1 = require("cordova-sites-database");
+const FileMedium_1 = require("../shared/FileMedium");
+const ServerFileMedium_1 = require("./ServerFileMedium");
 class EasySyncServerDb extends cordova_sites_database_1.BaseDatabase {
     _createConnectionOptions(database) {
+        Object.setPrototypeOf(FileMedium_1.FileMedium, ServerFileMedium_1.ServerFileMedium);
+        Object.setPrototypeOf(FileMedium_1.FileMedium.prototype, ServerFileMedium_1.ServerFileMedium.prototype);
         let options = super._createConnectionOptions(database);
         return Object["assign"](options, EasySyncServerDb.CONNECTION_PARAMETERS);
     }

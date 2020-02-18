@@ -5,5 +5,6 @@ function __export(m) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./server/EasySyncController"));
 __export(require("./server/EasySyncServerDb"));
+__export(require("./server/ServerFileMedium"));
 __export(require("./server/serverRoutes"));
 //# sourceMappingURL=server.js.map

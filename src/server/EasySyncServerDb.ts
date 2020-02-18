@@ -1,11 +1,17 @@
 import {BaseDatabase} from "cordova-sites-database";
+import {FileMedium} from "../shared/FileMedium";
+import {ServerFileMedium} from "./ServerFileMedium";
 
 export class EasySyncServerDb extends BaseDatabase {
 
     static CONNECTION_PARAMETERS;
 
     _createConnectionOptions(database) {
+        Object.setPrototypeOf(FileMedium, ServerFileMedium);
+        Object.setPrototypeOf(FileMedium.prototype, ServerFileMedium.prototype);
+
         let options = super._createConnectionOptions(database);
+
         return Object["assign"](options, EasySyncServerDb.CONNECTION_PARAMETERS);
     }
 

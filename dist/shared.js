@@ -5,4 +5,5 @@ function __export(m) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./shared/EasySyncBaseModel"));
 __export(require("./shared/EasySyncPartialModel"));
+__export(require("./shared/FileMedium"));
 //# sourceMappingURL=shared.js.map

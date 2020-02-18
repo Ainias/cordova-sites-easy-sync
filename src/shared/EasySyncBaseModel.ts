@@ -1,5 +1,5 @@
 import {BaseModel, BaseDatabase} from "cordova-sites-database/dist/cordova-sites-database";
-import { Helper, XSSHelper } from "js-helper/dist/shared";
+import {Helper, XSSHelper} from "js-helper/dist/shared";
 
 export class EasySyncBaseModel extends BaseModel {
 
@@ -76,7 +76,7 @@ export class EasySyncBaseModel extends BaseModel {
         let loadPromises = [];
         let addLoadPromises = [];
         jsonObjects.forEach((jsonObject, index) => {
-             addLoadPromises.push(new Promise(async resolve => {
+            addLoadPromises.push(new Promise(async resolve => {
                 let entity = null;
                 if (entities.length > index) {
                     entity = entities[index];
@@ -136,13 +136,13 @@ export class EasySyncBaseModel extends BaseModel {
 
     private static _handleColumns(entity) {
         let schemaDefinition = this.getSchemaDefinition();
-        let columns =schemaDefinition["columns"];
+        let columns = schemaDefinition["columns"];
 
         Object.keys(columns).forEach(columnName => {
-            if (columns[columnName].escapeHTML){
+            if (columns[columnName].escapeHTML) {
                 entity[columnName] = XSSHelper.escapeHTML(entity[columnName]);
             }
-            if (columns[columnName].escapeJS){
+            if (columns[columnName].escapeJS) {
                 entity[columnName] = XSSHelper.escapeJS(entity[columnName]);
             }
         })
