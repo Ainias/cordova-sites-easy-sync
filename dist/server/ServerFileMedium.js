@@ -48,10 +48,11 @@ class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             let matches = this.src.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
             //file is already a url
             if (matches === null || matches.length !== 3) {
+                debugger;
                 return;
             }
             let name = this._oldName;
-            if (Helper_1.Helper.isNull(name)) {
+            if (Helper_1.Helper.isNull(name) || name.startsWith("data:")) {
                 let seed = crypto.randomBytes(20);
                 name = crypto
                     .createHash('sha1')
