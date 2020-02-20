@@ -22,7 +22,7 @@ export class ServerFileMedium extends EasySyncBaseModel{
 
     static async saveMany(entities) {
         await ServerFileMedium._handleImages(entities);
-        return this._database.saveEntity(entities);
+        return super.saveMany(entities);
     }
 
     static async _handleImages(entities){

@@ -4,6 +4,8 @@ import {ClientModel} from "./ClientModel";
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
 import {ClientPartialModel} from "./ClientPartialModel";
+import {FileMedium} from "../shared/FileMedium";
+import {ClientFileMedium} from "./ClientFileMedium";
 
 declare var JSObject;
 
@@ -21,6 +23,8 @@ export class EasySyncClientDb extends BaseDatabase {
         JSObject.setPrototypeOf(EasySyncPartialModel, ClientPartialModel);
         JSObject.setPrototypeOf(EasySyncBaseModel.prototype, ClientModel.prototype);
         JSObject.setPrototypeOf(EasySyncPartialModel.prototype, ClientPartialModel.prototype);
+        JSObject.setPrototypeOf(FileMedium, ClientFileMedium);
+        JSObject.setPrototypeOf(FileMedium.prototype, ClientFileMedium.prototype);
 
         let options = super._createConnectionOptions(database);
         options["migrationsTableName"] = "migrations";

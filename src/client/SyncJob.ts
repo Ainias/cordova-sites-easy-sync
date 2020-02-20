@@ -5,6 +5,8 @@ import {EasySyncClientDb} from "./EasySyncClientDb";
 import * as _typeorm from "typeorm";
 import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
+import {FileMedium} from "../shared/FileMedium";
+import {ClientFileMedium} from "./ClientFileMedium";
 
 let typeorm = _typeorm;
 // if (typeorm.default) {
@@ -80,6 +82,11 @@ export class SyncJob {
                 }
             }
         });
+
+        if (finalRes["FileMedium"] && finalRes["FileMedium"]["changed"]){
+            await ClientFileMedium._handleImages(finalRes["FileMedium"]["changed"]);
+        }
+
         return finalRes;
     }
 
@@ -306,6 +313,10 @@ export class SyncJob {
             query.model = query.model.getSchemaName();
             this._modelNames.push(query.model);
             requestQueries.push(query);
+            let key = "" + query.model + JSON.stringify(query.where);
+            if (Helper.isNotNull(this._lastSyncDates[key])){
+                query["lastSynced"] = this._lastSyncDates[key].getLastSynced();
+            }
         });
 
         return requestQueries;

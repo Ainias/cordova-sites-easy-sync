@@ -16,6 +16,7 @@ const EasySyncClientDb_1 = require("./EasySyncClientDb");
 const _typeorm = require("typeorm");
 const EasySyncPartialModel_1 = require("../shared/EasySyncPartialModel");
 const EasySyncBaseModel_1 = require("../shared/EasySyncBaseModel");
+const ClientFileMedium_1 = require("./ClientFileMedium");
 let typeorm = _typeorm;
 // if (typeorm.default) {
 //     typeorm = typeorm.default;
@@ -81,6 +82,9 @@ class SyncJob {
                     }
                 }
             });
+            if (finalRes["FileMedium"] && finalRes["FileMedium"]["changed"]) {
+                yield ClientFileMedium_1.ClientFileMedium._handleImages(finalRes["FileMedium"]["changed"]);
+            }
             return finalRes;
         });
     }
@@ -279,6 +283,10 @@ class SyncJob {
             query.model = query.model.getSchemaName();
             this._modelNames.push(query.model);
             requestQueries.push(query);
+            let key = "" + query.model + JSON.stringify(query.where);
+            if (shared_1.Helper.isNotNull(this._lastSyncDates[key])) {
+                query["lastSynced"] = this._lastSyncDates[key].getLastSynced();
+            }
         });
         return requestQueries;
     }

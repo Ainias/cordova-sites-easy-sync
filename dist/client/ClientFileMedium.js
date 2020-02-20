@@ -9,22 +9,32 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Helper_1 = require("js-helper/dist/shared/Helper");
 const EasySyncBaseModel_1 = require("../shared/EasySyncBaseModel");
-const crypto = require("crypto");
-const fs = require("fs");
-class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
+const FileTransferPromise_1 = require("./FileWriter/FileTransferPromise");
+const Helper_1 = require("js-helper/dist/shared/Helper");
+const FilePromise_1 = require("./FileWriter/FilePromise");
+class ClientFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
+    constructor() {
+        super(...arguments);
+        this.saveOffline = true;
+        this._isDownloaded = true;
+    }
     setLoaded(isLoaded) {
         // @ts-ignore
         super.setLoaded(isLoaded);
-        this._oldName = this.src;
+        this._isDownloaded = true;
+        FilePromise_1.FilePromise.open(this.src, { create: false }).then(() => this._isDownloaded = true).catch(e => {
+            console.log("not downloaded, yet!");
+            this._isDownloaded = false;
+            ClientFileMedium._handleImages(this);
+        });
     }
     save() {
         const _super = Object.create(null, {
             save: { get: () => super.save }
         });
         return __awaiter(this, void 0, void 0, function* () {
-            yield ServerFileMedium._handleImages(this);
+            yield ClientFileMedium._handleImages(this);
             return _super.save.call(this);
         });
     }
@@ -33,7 +43,7 @@ class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             saveMany: { get: () => super.saveMany }
         });
         return __awaiter(this, void 0, void 0, function* () {
-            yield ServerFileMedium._handleImages(entities);
+            yield ClientFileMedium._handleImages(entities);
             return _super.saveMany.call(this, entities);
         });
     }
@@ -43,29 +53,14 @@ class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             if (!isArray) {
                 entities = [entities];
             }
-            yield Helper_1.Helper.asyncForEach(entities, (entity) => __awaiter(this, void 0, void 0, function* () { return entity.writeImgToFile(); }), true);
-        });
-    }
-    writeImgToFile() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let matches = this.src.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
-            //file is already a url
-            if (matches === null || matches.length !== 3) {
-                return;
-            }
-            let name = this._oldName;
-            if (Helper_1.Helper.isNull(name) || name.startsWith("data:")) {
-                let seed = crypto.randomBytes(20);
-                name = crypto
-                    .createHash('sha1')
-                    .update(seed)
-                    .digest('hex')
-                    + "." + matches[1];
-            }
-            return new Promise(r => fs.writeFile(ServerFileMedium.SAVE_PATH + name, matches[2], { encoding: "base64" }, r)).then(this.src = name);
+            yield Helper_1.Helper.asyncForEach(entities, (entity) => __awaiter(this, void 0, void 0, function* () {
+                if (entity.saveOffline && device.platform !== "browser" && !entity.src.startsWith("data") && !entity.src.startsWith("http") && !entity.src.startsWith("//")) {
+                    yield new FileTransferPromise_1.FileTransferPromise(entity.getServerUrl(false), entity.src).download().catch(e => console.log(e));
+                    entity._isDownloaded = true;
+                }
+            }), true);
         });
     }
 }
-exports.ServerFileMedium = ServerFileMedium;
-ServerFileMedium.SAVE_PATH = "./img_";
-//# sourceMappingURL=ServerFileMedium.js.map
+exports.ClientFileMedium = ClientFileMedium;
+//# sourceMappingURL=ClientFileMedium.js.map

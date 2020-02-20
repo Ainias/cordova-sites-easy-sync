@@ -15,6 +15,8 @@ const ClientModel_1 = require("./ClientModel");
 const EasySyncBaseModel_1 = require("../shared/EasySyncBaseModel");
 const EasySyncPartialModel_1 = require("../shared/EasySyncPartialModel");
 const ClientPartialModel_1 = require("./ClientPartialModel");
+const FileMedium_1 = require("../shared/FileMedium");
+const ClientFileMedium_1 = require("./ClientFileMedium");
 class EasySyncClientDb extends cordova_sites_database_1.BaseDatabase {
     constructor(dbName) {
         super(dbName || "EasySync");
@@ -24,6 +26,8 @@ class EasySyncClientDb extends cordova_sites_database_1.BaseDatabase {
         JSObject.setPrototypeOf(EasySyncPartialModel_1.EasySyncPartialModel, ClientPartialModel_1.ClientPartialModel);
         JSObject.setPrototypeOf(EasySyncBaseModel_1.EasySyncBaseModel.prototype, ClientModel_1.ClientModel.prototype);
         JSObject.setPrototypeOf(EasySyncPartialModel_1.EasySyncPartialModel.prototype, ClientPartialModel_1.ClientPartialModel.prototype);
+        JSObject.setPrototypeOf(FileMedium_1.FileMedium, ClientFileMedium_1.ClientFileMedium);
+        JSObject.setPrototypeOf(FileMedium_1.FileMedium.prototype, ClientFileMedium_1.ClientFileMedium.prototype);
         let options = super._createConnectionOptions(database);
         options["migrationsTableName"] = "migrations";
         return options;
