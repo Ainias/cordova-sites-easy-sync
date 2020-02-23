@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const cordova_sites_database_1 = require("cordova-sites-database");
 const FileMedium_1 = require("../shared/FileMedium");
 const ServerFileMedium_1 = require("./ServerFileMedium");
+const EasySyncBaseModel_1 = require("../shared/EasySyncBaseModel");
 class EasySyncServerDb extends cordova_sites_database_1.BaseDatabase {
     _createConnectionOptions(database) {
         Object.setPrototypeOf(FileMedium_1.FileMedium, ServerFileMedium_1.ServerFileMedium);
@@ -85,10 +86,15 @@ class EasySyncServerDb extends cordova_sites_database_1.BaseDatabase {
             if (typeof entities[0] === "number") {
                 entities = yield model.findByIds(entities);
             }
-            entities.forEach(ent => {
-                ent.deleted = true;
-            });
-            return this.saveEntity(entities);
+            if (entities[0] instanceof EasySyncBaseModel_1.EasySyncBaseModel) {
+                entities.forEach(ent => {
+                    ent.deleted = true;
+                });
+                return this.saveEntity(entities);
+            }
+            else {
+                return _super.deleteEntity.call(this, entities, model);
+            }
         });
     }
 }

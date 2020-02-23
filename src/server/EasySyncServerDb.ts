@@ -1,6 +1,7 @@
 import {BaseDatabase} from "cordova-sites-database";
 import {FileMedium} from "../shared/FileMedium";
 import {ServerFileMedium} from "./ServerFileMedium";
+import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 
 export class EasySyncServerDb extends BaseDatabase {
 
@@ -45,13 +46,13 @@ export class EasySyncServerDb extends BaseDatabase {
                 if (!indexedCompareEntities[entity.id] || indexedCompareEntities[entity.id].version === parseInt(entity.version)) {
                     entity.version++;
                 } else {
-                    throw new Error("optimistic locking exception for id " + entity.id + " and model " + entity.constructor.getSchemaName())+": got version "+entity.version+", but expected "+indexedCompareEntities[entity.id].version;
+                    throw new Error("optimistic locking exception for id " + entity.id + " and model " + entity.constructor.getSchemaName()) + ": got version " + entity.version + ", but expected " + indexedCompareEntities[entity.id].version;
                 }
             }
         });
         let savedEntites = await super.saveEntity(entities);
-        if (!isArray){
-            if (savedEntites.length > 0){
+        if (!isArray) {
+            if (savedEntites.length > 0) {
                 return savedEntites[0];
             }
             return null;
@@ -82,11 +83,16 @@ export class EasySyncServerDb extends BaseDatabase {
             entities = await model.findByIds(entities);
         }
 
-        entities.forEach(ent => {
-            ent.deleted = true;
-        });
+        if (entities[0] instanceof EasySyncBaseModel) {
+            entities.forEach(ent => {
+                ent.deleted = true;
+            });
 
-        return this.saveEntity(entities);
+            return this.saveEntity(entities);
+        }
+        else {
+            return super.deleteEntity(entities, model);
+        }
     }
 }
 
