@@ -54,7 +54,7 @@ class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
                 return;
             }
             let name = this._oldName;
-            if (Helper_1.Helper.isNull(name) || name.startsWith("data:")) {
+            if (Helper_1.Helper.isNull(name) || name.startsWith("data:") || name.startsWith("http")) {
                 let seed = crypto.randomBytes(20);
                 name = crypto
                     .createHash('sha1')

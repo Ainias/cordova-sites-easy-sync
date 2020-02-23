@@ -2,6 +2,8 @@ import {EasySyncBaseModel} from "./EasySyncBaseModel";
 import {BaseDatabase} from "cordova-sites-database/dist/BaseDatabase";
 import {Helper} from "js-helper/dist/shared/Helper";
 
+declare const device;
+
 export class FileMedium extends EasySyncBaseModel {
 
     static PUBLIC_PATH = "./";
@@ -29,7 +31,7 @@ export class FileMedium extends EasySyncBaseModel {
     }
 
     getUrl() {
-        if (this.saveOffline && this._isDownloaded && Helper.isNotNull(this.id) && !this.src.startsWith("data")) {
+        if (device.platform !== "browser" && this.saveOffline && this._isDownloaded && Helper.isNotNull(this.id) && !this.src.startsWith("data") && !this.src.startsWith("http")) {
             return "cdvfile://localhost/persistent/" + this.src;
         } else {
             return this.getServerUrl();

@@ -43,7 +43,7 @@ export class ServerFileMedium extends EasySyncBaseModel{
         }
 
         let name = this._oldName;
-        if (Helper.isNull(name) || name.startsWith("data:")) {
+        if (Helper.isNull(name) || name.startsWith("data:") || name.startsWith("http")) {
             let seed = crypto.randomBytes(20);
             name = crypto
                     .createHash('sha1')

@@ -27,7 +27,7 @@ class FileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
         return this.src;
     }
     getUrl() {
-        if (this.saveOffline && this._isDownloaded && Helper_1.Helper.isNotNull(this.id) && !this.src.startsWith("data")) {
+        if (device.platform !== "browser" && this.saveOffline && this._isDownloaded && Helper_1.Helper.isNotNull(this.id) && !this.src.startsWith("data") && !this.src.startsWith("http")) {
             return "cdvfile://localhost/persistent/" + this.src;
         }
         else {
