@@ -1,17 +1,12 @@
 import {LastSyncDates} from "./LastSyncDates";
 import {DataManager} from "cordova-sites/dist/client";
-import {Helper, JsonHelper} from "js-helper/dist/shared";
+import {Helper, JsonHelper, XSSHelper} from "js-helper/dist/shared";
 import {EasySyncClientDb} from "./EasySyncClientDb";
-import * as _typeorm from "typeorm";
+import * as typeorm from "typeorm";
 import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
-import {FileMedium} from "../shared/FileMedium";
 import {ClientFileMedium} from "./ClientFileMedium";
-
-let typeorm = _typeorm;
-// if (typeorm.default) {
-//     typeorm = typeorm.default;
-// }
+import {QueryRunner} from "typeorm";
 
 export class SyncJob {
 
@@ -21,9 +16,13 @@ export class SyncJob {
     _relationshipModels = {};
     _lastSyncDates = {};
     _keyedModelClasses = {};
-    _savePromises = [];
+    _savePromise = Promise.resolve();
+    _queryRunner: QueryRunner = null;
+    _finalRes: any = {};
 
     _syncPromise;
+
+    _manyToManyRelations: {};
 
     async syncInBackgroundIfDataExists(queries) {
         this._keyedModelClasses = EasySyncClientDb.getModel();
@@ -37,12 +36,12 @@ export class SyncJob {
 
         if (Object["values"](this._lastSyncDates).some(lastSync => {
             return lastSync["getLastSynced"]() === 0;
-        })){
+        })) {
             await this._syncPromise;
         }
     }
 
-    async getSyncPromise(){
+    async getSyncPromise() {
         return this._syncPromise;
     }
 
@@ -56,38 +55,22 @@ export class SyncJob {
         }
 
         let saveResults = await this._doRuns(requestQueries);
-        await this._handleRelations();
+        // await this._handleRelations();
 
         //Save new lastSync models
         let lastSyncPromises = [];
         Object.keys(this._lastSyncDates).forEach(model => {
-            lastSyncPromises.push(this._lastSyncDates[model].save())
+            lastSyncPromises.push(this._lastSyncDates[model].save());
         });
         await Promise.all(lastSyncPromises);
 
         //Calculate final result and give it back
-        let finalRes = {};
-        saveResults.forEach(res => {
-            if (res) {
-                if (!finalRes[res.model]) {
-                    finalRes[res.model] = {
-                        "deleted": [],
-                        "changed": []
-                    };
-                }
-                if (res.deleted) {
-                    finalRes[res.model]["deleted"] = finalRes[res.model]["deleted"].concat(res.entities);
-                } else {
-                    finalRes[res.model]["changed"] = finalRes[res.model]["changed"].concat(res.entities);
-                }
-            }
-        });
 
-        if (finalRes["FileMedium"] && finalRes["FileMedium"]["changed"]){
-            await ClientFileMedium._handleImages(finalRes["FileMedium"]["changed"]);
+        if (this._finalRes["FileMedium"] && this._finalRes["FileMedium"]["changed"]) {
+            await ClientFileMedium._handleImages(await ClientFileMedium.findByIds(this._finalRes["FileMedium"]["changed"]));
         }
 
-        return finalRes;
+        return this._finalRes;
     }
 
     private async _doRuns(requestQueries) {
@@ -97,9 +80,15 @@ export class SyncJob {
         let response = null;
         let offset = 0;
 
-        let shouldAskAgain = false;
+
+        //startTransaction
+        this._queryRunner = await EasySyncClientDb.getInstance().createQueryRunner();
+        this._savePromise = this._queryRunner.startTransaction().then(() => {
+            return this._queryRunner.query("PRAGMA foreign_keys = OFF");
+        });
 
         //Ask for next run until no more runs needed
+        let shouldAskAgain = false;
         do {
             shouldAskAgain = false;
             response = await SyncJob._fetchModel(requestQueries, offset);
@@ -115,100 +104,27 @@ export class SyncJob {
 
             //create new request query
             let newRequestQueries = [];
-
             response.results.forEach((res, i) => {
-                if (this._extractEntities(res)) {
+                if (res && res.shouldAskAgain) {
                     shouldAskAgain = true;
                     newRequestQueries.push(requestQueries[i]);
                 }
+                this._extractEntities(res)
             });
             requestQueries = newRequestQueries;
         }
         while (shouldAskAgain);
 
-        return Promise.all(this._savePromises);
-    }
-
-    private async _handleRelations() {
-
-        let mergedRelations = {};
-        let relationPromises = [];
-
-        Object.keys(this._relationshipModels).forEach(modelClassName => {
-            let relationDefinitions = this._keyedModelClasses[modelClassName].getRelationDefinitions();
-
-            Object.keys(this._relationshipModels[modelClassName]).forEach(id => {
-                let entity = this._relationshipModels[modelClassName][id]["entity"];
-                let relations = this._relationshipModels[modelClassName][id]["relations"];
-                let entityRelationPromises = [];
-
-                Object.keys(relations).forEach(relation => {
-
-                    //foreach relation load other models and save them here
-                    let valuePromise = this._handleSingleRelation(relationDefinitions, relation, relations, mergedRelations, entity);
-
-                    entityRelationPromises.push(valuePromise.then(value => {
-                            entity[relation] = value;
-                    }));
-                });
-
-                //Save after all relationships has been set
-                relationPromises.push(Promise.all(entityRelationPromises).then(() => {
-                    return entity.save(true);
-                }))
-            });
+        //wait for savePromises, stop transaction
+        return this._savePromise.then(async () => {
+            await this._queryRunner.query("PRAGMA foreign_keys = ON");
+            return this._queryRunner.commitTransaction();
+        }).catch(e => {
+            console.error(e);
+            return this._queryRunner.rollbackTransaction();
+        }).finally(() => {
+            return this._queryRunner.release();
         });
-
-        //Wait for relation-promises
-        await Promise.all(relationPromises);
-
-        await Helper.asyncForEach(Object.keys(mergedRelations), async model => {
-            let entities = Helper.arrayToObject(await this._keyedModelClasses[model].findByIds(Object.keys(mergedRelations[model]), this._keyedModelClasses[model].getRelations()), e => e.id);
-            Object.keys(mergedRelations[model]).forEach(id => {
-                if (entities[id]) {
-                    Object.keys(mergedRelations[model][id]).forEach(relation => {
-                        if (Array.isArray(mergedRelations[model][id][relation])) {
-                            entities[id][relation] = Helper.nonNull(entities[id][relation], []);
-                            entities[id][relation].push.apply(entities[id][relation], mergedRelations[model][id][relation])
-                        } else {
-                            entities[id][relation] = mergedRelations[model][id][relation];
-                        }
-                    });
-                }
-            });
-            await EasySyncClientDb.getInstance().saveEntity(Object.values(entities));
-        }, true);
-    }
-
-    private _handleSingleRelation(relationDefinitions, relationName: string, relations, mergedRelations: {}, entity) {
-        let valuePromise = Promise.resolve(undefined);
-        let target = relationDefinitions[relationName]["target"];
-        let shouldSync = (relationDefinitions[relationName].sync !== false);
-
-        //is relation a *-to-many relation?
-        if (Array.isArray(relations[relationName])) {
-            if (shouldSync || relations[relationName].every(id => !Helper.isSet(this._syncedModels, target, id))) {
-                valuePromise = this._keyedModelClasses[target].findByIds(relations[relationName]);
-            } else {
-                let targetRelationDefinition = this._keyedModelClasses[target].getRelationDefinitions()[relationDefinitions[relationName]["inverseSide"]];
-                relations[relationName].filter(id => !Helper.isSet(this._relationshipModels, target, id)).forEach(id => {
-                    mergedRelations[target] = Helper.nonNull(mergedRelations[target], {});
-                    mergedRelations[target][id] = Helper.nonNull(mergedRelations[target][id], {});
-
-                    let otherRelationValue = null;
-                    if (targetRelationDefinition.type === "many-to-many" || targetRelationDefinition.type === "one-to-many") {
-                        otherRelationValue = Helper.nonNull(mergedRelations[target][id][relationDefinitions[relationName]["inverseSide"]], []);
-                        otherRelationValue.push(entity);
-                    } else {
-                        otherRelationValue = entity;
-                    }
-                    mergedRelations[target][id][relationDefinitions[relationName]["inverseSide"]] = otherRelationValue;
-                });
-            }
-        } else if (shouldSync || !Helper.isSet(this._syncedModels, target, relations[relationName])) {
-            valuePromise = this._keyedModelClasses[target].findById(relations[relationName]);
-        }
-        return valuePromise;
     }
 
     /**
@@ -217,86 +133,99 @@ export class SyncJob {
      * @param modelRes
      * @private
      */
-    private _extractEntities(modelRes) {
+    private async _extractEntities(modelRes) {
         if (!modelRes) {
-            return false;
+            return;
         }
-
-        let shouldAskAgain = false;
 
         let modelClass = this._keyedModelClasses[modelRes["model"]];
         let modelName = modelClass.getSchemaName();
 
         let deletedModelsIds = [];
-        let changedModels = [];
+        let changedEntities = [];
 
         //split result into deleted and changed/new entities
         modelRes["entities"].forEach(entity => {
             if (entity.deleted) {
                 deletedModelsIds.push(entity.id);
             } else {
-                changedModels.push(entity);
+                changedEntities.push(entity);
             }
         });
 
         this._syncedModels[modelName] = Helper.nonNull(this._syncedModels[modelName], {});
 
         //convert json to entity and save it
-        this._savePromises.push(modelClass._fromJson(changedModels).then(async changedEntities => {
-            let relations = modelClass.getRelationDefinitions();
-            let newIds = [];
-            changedEntities.forEach(entity => {
-                this._syncedModels[modelName][entity.id] = entity;
+        let schemaDefinition = modelClass.getSchemaDefinition();
+        let relations = schemaDefinition["relations"];
+        let columns = schemaDefinition["columns"];
 
-                newIds.push(entity.id);
-                Object.keys(relations).forEach(relation => {
-                    if (entity[relation]) {
-                        this._addRelation(modelName, entity, relation);
+        let changedEntityIds = [];
+        changedEntities.forEach(entity => {
+            Object.keys(relations).forEach(relation => {
+                if (relations[relation].type === "many-to-many" && Array.isArray(entity[relation])) {
+                    let table = relations[relation].joinTable;
 
-                        //clear relation
-                        entity[relation] = null;
+                    let ownName;
+                    if (table.joinColumn && table.joinColumn.name) {
+                        ownName = table.joinColumn.name;
+                    } else {
+                        ownName = modelClass.getSchemaName();
+                        ownName = ownName.substr(0, 1).toLowerCase() + ownName.substr(1) + "Id";
                     }
-                });
+
+                    let otherName;
+                    if (table.inverseJoinColumn && table.inverseJoinColumn.name) {
+                        otherName = table.inverseJoinColumn.name;
+                    } else {
+                        otherName = relations[relation].target;
+                        ownName = otherName.substr(0, 1).toLowerCase() + otherName.substr(1) + "Id";
+                    }
+
+                    this._manyToManyRelations[table.name] = Helper.nonNull(this._manyToManyRelations[table.name], []);
+
+                    let otherIdsAlreadyInserted = [];
+                    let insertedRelations = this._manyToManyRelations[table.name].filter(relValue => relValue[ownName] === entity.id);
+                    insertedRelations.forEach(relValue => otherIdsAlreadyInserted.push(relValue[otherName]));
+
+                    entity[relation].forEach(otherId => {
+                        if (otherIdsAlreadyInserted.indexOf(otherId) === -1) {
+                            let value = {};
+                            value[ownName] = entity.id;
+                            value[otherName] = otherId;
+                            this._manyToManyRelations[table.name].push(value);
+                        }
+                    });
+                } else if ((relations[relation].type === "many-to-one" || (relations[relation].type === "one-to-one" && relations[relation].joinColumn)) && entity[relation]) {
+                    let fieldName;
+                    if (relations[relation].joinColumn && relations[relation].joinColumn.name) {
+                        fieldName = relations[relation].joinColumn.name;
+                    } else {
+                        fieldName = relations[relation].target;
+                        fieldName = fieldName.substr(0, 1).toLowerCase() + fieldName.substr(1) + "Id";
+                    }
+                    entity[fieldName] = entity[relation];
+                }
+                delete entity[relation];
             });
-
-            //Handle partial Models (different ids on client than server)
-            if (modelClass.prototype instanceof EasySyncPartialModel) {
-                let oldObjects = await modelClass.findByIds(newIds);
-                let keyedEntities = Helper.arrayToObject(changedEntities, changedEntities => changedEntities.id);
-                oldObjects.forEach(old => {
-                    keyedEntities[old.id].clientId = old.clientId;
-                });
-            }
-
-            return EasySyncClientDb.getInstance().saveEntity(changedEntities).then(res => {
-                return {
-                    "model": modelName,
-                    "entities": res,
-                    "deleted": false
-                };
-            }).catch(e => {
-                console.error(e);
-                return Promise.reject(e)
+            Object.keys(columns).forEach(columnName => {
+                if (columns[columnName].escapeHTML) {
+                    entity[columnName] = XSSHelper.escapeHTML(entity[columnName]);
+                }
+                if (columns[columnName].escapeJS) {
+                    entity[columnName] = XSSHelper.escapeJS(entity[columnName]);
+                }
             });
-        }));
+            changedEntityIds.push(entity.id);
+        });
 
-        //Deletion of the entities
-        this._savePromises.push(EasySyncClientDb.getInstance().deleteEntity(deletedModelsIds, modelClass).then(res => {
-            return {
-                "model": modelName,
-                "entities": res,
-                "deleted": true
-            };
-        }).catch(e => {
-            console.error(e);
-            return Promise.reject(e)
-        }));
+        this._savePromise = this._savePromise.then(() => this._insertOrReplace(modelClass, changedEntities));
+        this._savePromise = this._savePromise.then(() => this._deleteModels(modelClass, deletedModelsIds));
+        //TODO delete old models
 
-        if (modelRes.shouldAskAgain) {
-            shouldAskAgain = true;
-        }
-
-        return shouldAskAgain
+        this._finalRes[modelName] = Helper.nonNull(this._finalRes[modelName], {"deleted":[], "changed":[]});
+        this._finalRes[modelName]["deleted"].push(...deletedModelsIds);
+        this._finalRes[modelName]["changed"].push(...changedEntityIds);
     }
 
     private _buildRequestQuery(queries) {
@@ -314,7 +243,7 @@ export class SyncJob {
             this._modelNames.push(query.model);
             requestQueries.push(query);
             let key = "" + query.model + JSON.stringify(query.where);
-            if (Helper.isNotNull(this._lastSyncDates[key])){
+            if (Helper.isNotNull(this._lastSyncDates[key])) {
                 query["lastSynced"] = this._lastSyncDates[key].getLastSynced();
             }
         });
@@ -344,21 +273,83 @@ export class SyncJob {
         return lastSyncDates;
     }
 
-    private _addRelation(modelName, entity, relation) {
-        this._relationshipModels[modelName] = Helper.nonNull(this._relationshipModels[modelName], {});
-        this._relationshipModels[modelName][entity.id] = Helper.nonNull(this._relationshipModels[modelName][entity.id], {});
-        this._relationshipModels[modelName][entity.id]["entity"] = entity;
-        this._relationshipModels[modelName][entity.id]["relations"] = Helper.nonNull(this._relationshipModels[modelName][entity.id]["relations"], {});
-        this._relationshipModels[modelName][entity.id]["relations"][relation] = entity[relation];
-        return this._relationshipModels;
-    }
-
     static async _fetchModel(query, offset) {
         return await DataManager.load(SyncJob.SYNC_PATH_PREFIX +
             DataManager.buildQuery({
                 "queries": JSON.stringify(query),
                 "offset": offset
             }));
+    }
+
+    private async _insertOrReplace(modelClass: any, changedEntities: any[]) {
+
+        const MAX_INSERT_IN_ONE_GO = 300;
+
+        if (changedEntities.length === 0) {
+            return;
+        }
+
+        let tableName = modelClass.getSchemaName();
+        tableName = tableName.substr(0, 1).toLowerCase() + tableName.substr(1);
+
+        let fields = Object.keys(changedEntities[0]);
+        let values = [];
+        let valueStrings = [];
+        await Helper.asyncForEach(changedEntities, async (entity, index) => {
+            let valueString = [];
+
+            //Stellt die reihenfolge sicher
+            fields.forEach(field => {
+                values.push(entity[field]);
+                valueString.push("?");
+            });
+
+            valueStrings.push("(" + valueString.join(",") + ")");
+
+            if (valueStrings.length >= MAX_INSERT_IN_ONE_GO) {
+                let sql = "INSERT OR REPLACE INTO " + tableName + " (" + fields.join(",") + ") VALUES " + valueStrings.join(",");
+                await this._queryRunner.query(sql, values);
+
+                valueStrings = [];
+                values = [];
+            }
+        });
+
+        if (valueStrings.length > 0) {
+            let sql = "INSERT OR REPLACE INTO " + tableName + " (" + fields.join(",") + ") VALUES " + valueStrings.join(",");
+            await this._queryRunner.query(sql, values);
+        }
+    }
+
+    private async _deleteModels(modelClass: any, deletedModelsIds: any[]) {
+        const MAX_DELETES_IN_ONE_GO = 300;
+
+        if (deletedModelsIds.length === 0) {
+            return;
+        }
+
+        let tableName = modelClass.getSchemaName();
+        tableName = tableName.substr(0, 1).toLowerCase() + tableName.substr(1);
+
+        let ids = [];
+        let valueStrings = [];
+        await Helper.asyncForEach(deletedModelsIds, async entityId => {
+            ids.push(entityId);
+            valueStrings.push("?");
+
+            if (valueStrings.length >= MAX_DELETES_IN_ONE_GO) {
+                let sql = "DELETE FROM " + tableName + " WHERE id IN (" + ids.join(",") + ")";
+                await this._queryRunner.query(sql, ids);
+
+                valueStrings = [];
+                ids = [];
+            }
+        });
+
+        if (valueStrings.length > 0) {
+            let sql = "DELETE FROM " + tableName + " WHERE id IN (" + ids.join(",") + ")";
+            await this._queryRunner.query(sql, ids);
+        }
     }
 }
 

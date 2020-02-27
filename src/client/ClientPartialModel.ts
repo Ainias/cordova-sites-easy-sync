@@ -22,6 +22,7 @@ export class ClientPartialModel extends EasySyncBaseModel {
             columns["id"]["primary"] = false;
             columns["id"]["generated"] = false;
             columns["id"]["nullable"] = true;
+            columns["id"]["unique"] = true;
         }
         columns["clientId"] = {
             type: "integer",
