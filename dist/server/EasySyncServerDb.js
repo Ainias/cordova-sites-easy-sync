@@ -84,7 +84,7 @@ class EasySyncServerDb extends cordova_sites_database_1.BaseDatabase {
                 model = entities[0].constructor;
             }
             if (typeof entities[0] === "number") {
-                entities = yield model.findByIds(entities);
+                entities = yield model.findByIds(entities, model.getRelations());
             }
             if (entities[0] instanceof EasySyncBaseModel_1.EasySyncBaseModel) {
                 entities.forEach(ent => {

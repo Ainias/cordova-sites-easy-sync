@@ -7,5 +7,6 @@ export * from './client/FileWriter/FileTransferPromise';
 export * from './client/FileWriter/FileWriterPromise';
 export * from './client/LastSyncDates';
 export * from './client/SyncJob';
+export * from './client/SyncJob_old';
 export * from './client/editEntitySite/ModifyEntitySite';
 export * from './client/migration/SetupEasySync';

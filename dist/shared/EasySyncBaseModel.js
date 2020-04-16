@@ -145,6 +145,9 @@ class EasySyncBaseModel extends cordova_sites_database_1.BaseModel {
             }
         });
     }
+    static prepareSync(entities) {
+        return entities;
+    }
 }
 exports.EasySyncBaseModel = EasySyncBaseModel;
 EasySyncBaseModel.delegateClass = null;

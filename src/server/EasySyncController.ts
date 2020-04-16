@@ -21,6 +21,9 @@ export class EasySyncController {
         });
 
         let entities = await model.find(where, undefined, this.MAX_MODELS_PER_RUN, offset, model.getRelations());
+        if (typeof model.prepareSync === "function") {
+            entities = await model.prepareSync(entities);
+        }
 
         return {
             "model": model.getSchemaName(),
@@ -92,7 +95,7 @@ export class EasySyncController {
             modelData = [modelData];
         }
 
-        if (modelData.length === 0){
+        if (modelData.length === 0) {
             return [];
         }
 

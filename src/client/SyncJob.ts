@@ -3,10 +3,11 @@ import {DataManager} from "cordova-sites/dist/client";
 import {Helper, JsonHelper, XSSHelper} from "js-helper/dist/shared";
 import {EasySyncClientDb} from "./EasySyncClientDb";
 import * as typeorm from "typeorm";
-import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 import {ClientFileMedium} from "./ClientFileMedium";
 import {QueryRunner} from "typeorm";
+import {FileMedium} from "../shared/FileMedium";
+import {BaseDatabase} from "cordova-sites-database/dist/BaseDatabase";
 
 export class SyncJob {
 
@@ -22,7 +23,8 @@ export class SyncJob {
 
     _syncPromise;
 
-    _manyToManyRelations: {};
+    _manyToManyRelations = {};
+
 
     async syncInBackgroundIfDataExists(queries) {
         this._keyedModelClasses = EasySyncClientDb.getModel();
@@ -54,8 +56,7 @@ export class SyncJob {
             this._lastSyncDates = await this._getLastSyncModels(this._modelNames, requestQueries);
         }
 
-        let saveResults = await this._doRuns(requestQueries);
-        // await this._handleRelations();
+        await this._doRuns(requestQueries);
 
         //Save new lastSync models
         let lastSyncPromises = [];
@@ -64,10 +65,11 @@ export class SyncJob {
         });
         await Promise.all(lastSyncPromises);
 
-        //Calculate final result and give it back
+        //disabled in doRuns. Cannot be reenabled sooner, but since lastSyncDates should not have any relations, it should be okay
+        await EasySyncClientDb.getInstance().rawQuery("PRAGMA foreign_keys = ON;");
 
         if (this._finalRes["FileMedium"] && this._finalRes["FileMedium"]["changed"]) {
-            await ClientFileMedium._handleImages(await ClientFileMedium.findByIds(this._finalRes["FileMedium"]["changed"]));
+            await ClientFileMedium._handleImages(await FileMedium.findByIds(this._finalRes["FileMedium"]["changed"]));
         }
 
         return this._finalRes;
@@ -80,15 +82,14 @@ export class SyncJob {
         let response = null;
         let offset = 0;
 
-
-        //startTransaction
+        //startTransaction maybe allow read, but not write?
         this._queryRunner = await EasySyncClientDb.getInstance().createQueryRunner();
-        this._savePromise = this._queryRunner.startTransaction().then(() => {
-            return this._queryRunner.query("PRAGMA foreign_keys = OFF");
+        this._savePromise = this._queryRunner.query("PRAGMA foreign_keys = OFF;").then(() => {
+            return this._queryRunner.startTransaction();
         });
 
         //Ask for next run until no more runs needed
-        let shouldAskAgain = false;
+        let shouldAskAgain;
         do {
             shouldAskAgain = false;
             response = await SyncJob._fetchModel(requestQueries, offset);
@@ -102,28 +103,31 @@ export class SyncJob {
                 });
             }
 
-            //create new request query
+            //create new request query and save changes
             let newRequestQueries = [];
             response.results.forEach((res, i) => {
                 if (res && res.shouldAskAgain) {
                     shouldAskAgain = true;
                     newRequestQueries.push(requestQueries[i]);
                 }
+
+                //Extract entities
                 this._extractEntities(res)
             });
             requestQueries = newRequestQueries;
         }
         while (shouldAskAgain);
 
+        await this._handleManyToManyRelations();
+
         //wait for savePromises, stop transaction
         return this._savePromise.then(async () => {
-            await this._queryRunner.query("PRAGMA foreign_keys = ON");
-            return this._queryRunner.commitTransaction();
-        }).catch(e => {
+            await this._queryRunner.commitTransaction();
+        }).catch(async e => {
             console.error(e);
-            return this._queryRunner.rollbackTransaction();
-        }).finally(() => {
-            return this._queryRunner.release();
+            await this._queryRunner.rollbackTransaction();
+        }).finally(async () => {
+            await this._queryRunner.release();
         });
     }
 
@@ -133,7 +137,7 @@ export class SyncJob {
      * @param modelRes
      * @private
      */
-    private async _extractEntities(modelRes) {
+    private _extractEntities(modelRes) {
         if (!modelRes) {
             return;
         }
@@ -179,21 +183,26 @@ export class SyncJob {
                         otherName = table.inverseJoinColumn.name;
                     } else {
                         otherName = relations[relation].target;
-                        ownName = otherName.substr(0, 1).toLowerCase() + otherName.substr(1) + "Id";
+                        otherName = otherName.substr(0, 1).toLowerCase() + otherName.substr(1) + "Id";
                     }
 
-                    this._manyToManyRelations[table.name] = Helper.nonNull(this._manyToManyRelations[table.name], []);
+                    this._manyToManyRelations[table.name] = Helper.nonNull(this._manyToManyRelations[table.name], {});
+                    this._manyToManyRelations[table.name]["values"] = Helper.nonNull(this._manyToManyRelations[table.name]["values"], []);
+                    this._manyToManyRelations[table.name]["delete_" + ownName] = Helper.nonNull(this._manyToManyRelations[table.name]["delete_" + ownName], []);
+
+                    this._manyToManyRelations[table.name]["delete_" + ownName].push(entity.id);
 
                     let otherIdsAlreadyInserted = [];
-                    let insertedRelations = this._manyToManyRelations[table.name].filter(relValue => relValue[ownName] === entity.id);
+                    let insertedRelations = this._manyToManyRelations[table.name]["values"].filter(relValue => relValue[ownName] === entity.id);
                     insertedRelations.forEach(relValue => otherIdsAlreadyInserted.push(relValue[otherName]));
 
                     entity[relation].forEach(otherId => {
-                        if (otherIdsAlreadyInserted.indexOf(otherId) === -1) {
+                        let index = otherIdsAlreadyInserted.indexOf(otherId);
+                        if (index === -1) {
                             let value = {};
                             value[ownName] = entity.id;
                             value[otherName] = otherId;
-                            this._manyToManyRelations[table.name].push(value);
+                            this._manyToManyRelations[table.name]["values"].push(value);
                         }
                     });
                 } else if ((relations[relation].type === "many-to-one" || (relations[relation].type === "one-to-one" && relations[relation].joinColumn)) && entity[relation]) {
@@ -201,8 +210,7 @@ export class SyncJob {
                     if (relations[relation].joinColumn && relations[relation].joinColumn.name) {
                         fieldName = relations[relation].joinColumn.name;
                     } else {
-                        fieldName = relations[relation].target;
-                        fieldName = fieldName.substr(0, 1).toLowerCase() + fieldName.substr(1) + "Id";
+                        fieldName = relation + "Id";
                     }
                     entity[fieldName] = entity[relation];
                 }
@@ -219,11 +227,10 @@ export class SyncJob {
             changedEntityIds.push(entity.id);
         });
 
-        this._savePromise = this._savePromise.then(() => this._insertOrReplace(modelClass, changedEntities));
-        this._savePromise = this._savePromise.then(() => this._deleteModels(modelClass, deletedModelsIds));
-        //TODO delete old models
+        this._savePromise = this._savePromise.then(async () => await this._insertOrReplace(modelClass, changedEntities));
+        this._savePromise = this._savePromise.then(async () => await this._deleteModels(modelClass, deletedModelsIds));
 
-        this._finalRes[modelName] = Helper.nonNull(this._finalRes[modelName], {"deleted":[], "changed":[]});
+        this._finalRes[modelName] = Helper.nonNull(this._finalRes[modelName], {"deleted": [], "changed": []});
         this._finalRes[modelName]["deleted"].push(...deletedModelsIds);
         this._finalRes[modelName]["changed"].push(...changedEntityIds);
     }
@@ -289,18 +296,30 @@ export class SyncJob {
             return;
         }
 
-        let tableName = modelClass.getSchemaName();
-        tableName = tableName.substr(0, 1).toLowerCase() + tableName.substr(1);
+        let schemaDefinition = modelClass.getSchemaDefinition();
+        let tableName = schemaDefinition.name;
+        tableName = Helper.toSnakeCase(tableName);
 
+        let columns = schemaDefinition.columns;
+
+        //Get fields from entity for including relation fields
         let fields = Object.keys(changedEntities[0]);
+
         let values = [];
         let valueStrings = [];
-        await Helper.asyncForEach(changedEntities, async (entity, index) => {
+        await Helper.asyncForEach(changedEntities, async (entity) => {
             let valueString = [];
 
             //Stellt die reihenfolge sicher
             fields.forEach(field => {
-                values.push(entity[field]);
+                let val = entity[field];
+                if (columns[field] && columns[field].transformer) {
+                    val = columns[field].transformer.to(val);
+                }
+                if (columns[field] && columns[field].type === BaseDatabase.TYPES.SIMPLE_JSON){
+                    val = JSON.stringify(val);
+                }
+                values.push(val);
                 valueString.push("?");
             });
 
@@ -329,7 +348,7 @@ export class SyncJob {
         }
 
         let tableName = modelClass.getSchemaName();
-        tableName = tableName.substr(0, 1).toLowerCase() + tableName.substr(1);
+        tableName = Helper.toSnakeCase(tableName)
 
         let ids = [];
         let valueStrings = [];
@@ -339,7 +358,7 @@ export class SyncJob {
 
             if (valueStrings.length >= MAX_DELETES_IN_ONE_GO) {
                 let sql = "DELETE FROM " + tableName + " WHERE id IN (" + ids.join(",") + ")";
-                await this._queryRunner.query(sql, ids);
+                await this._queryRunner.query(sql);
 
                 valueStrings = [];
                 ids = [];
@@ -348,8 +367,43 @@ export class SyncJob {
 
         if (valueStrings.length > 0) {
             let sql = "DELETE FROM " + tableName + " WHERE id IN (" + ids.join(",") + ")";
-            await this._queryRunner.query(sql, ids);
+            await this._queryRunner.query(sql);
         }
+    }
+
+    private async _handleManyToManyRelations() {
+
+        await this._savePromise;
+
+        let promises = [];
+        Object.keys(this._manyToManyRelations).forEach(table => {
+            let sql = "DELETE FROM " + table + " WHERE ";
+            let deleteSqls = [];
+            Object.keys(this._manyToManyRelations[table]).forEach(field => {
+                if (field.startsWith("delete_")) {
+                    deleteSqls.push(field.substr(7) + " IN (" + this._manyToManyRelations[table][field].join(",") + ")");
+                }
+            });
+            sql += deleteSqls.join(" OR ") + ";";
+
+            promises.push(this._queryRunner.query(sql).then(() => {
+                if (this._manyToManyRelations[table].values.length > 0) {
+                    let fields = Object.keys(this._manyToManyRelations[table].values[0]);
+
+                    let valueStrings = [];
+                    this._manyToManyRelations[table].values.forEach(valuePair => {
+                        let values = [];
+                        fields.forEach(field => {
+                            values.push(valuePair[field]);
+                        });
+                        valueStrings.push("(" + values.join(",") + ")");
+                    });
+                    let sql = "INSERT OR REPLACE INTO " + table + "(" + fields.join(",") + ") VALUES " + valueStrings.join(",") + ";";
+                    return this._queryRunner.query(sql);
+                }
+            }));
+        });
+        await Promise.all(promises);
     }
 }
 

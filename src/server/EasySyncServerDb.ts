@@ -80,7 +80,7 @@ export class EasySyncServerDb extends BaseDatabase {
         }
 
         if (typeof entities[0] === "number") {
-            entities = await model.findByIds(entities);
+            entities = await model.findByIds(entities, model.getRelations());
         }
 
         if (entities[0] instanceof EasySyncBaseModel) {

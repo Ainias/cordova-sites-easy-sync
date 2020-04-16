@@ -7,7 +7,7 @@ import {EasySyncPartialModel} from "../shared/EasySyncPartialModel";
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 import {ClientFileMedium} from "./ClientFileMedium";
 
-export class SyncJob {
+export class SyncJob_old {
 
     static SYNC_PATH_PREFIX;
     _syncedModels = {};
@@ -96,7 +96,7 @@ export class SyncJob {
         //Ask for next run until no more runs needed
         do {
             shouldAskAgain = false;
-            response = await SyncJob._fetchModel(requestQueries, offset);
+            response = await SyncJob_old._fetchModel(requestQueries, offset);
             offset = response["nextOffset"];
 
             //Update newLastSynced
@@ -348,7 +348,7 @@ export class SyncJob {
     }
 
     static async _fetchModel(query, offset) {
-        return await DataManager.load(SyncJob.SYNC_PATH_PREFIX +
+        return await DataManager.load(SyncJob_old.SYNC_PATH_PREFIX +
             DataManager.buildQuery({
                 "queries": JSON.stringify(query),
                 "offset": offset
@@ -356,4 +356,4 @@ export class SyncJob {
     }
 }
 
-SyncJob.SYNC_PATH_PREFIX = "sync";
+SyncJob_old.SYNC_PATH_PREFIX = "sync";

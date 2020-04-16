@@ -12,6 +12,7 @@ __export(require("./client/FileWriter/FileTransferPromise"));
 __export(require("./client/FileWriter/FileWriterPromise"));
 __export(require("./client/LastSyncDates"));
 __export(require("./client/SyncJob"));
+__export(require("./client/SyncJob_old"));
 __export(require("./client/editEntitySite/ModifyEntitySite"));
 __export(require("./client/migration/SetupEasySync"));
 //# sourceMappingURL=client.js.map

@@ -19,4 +19,5 @@ export declare class EasySyncBaseModel extends BaseModel {
     static _fromJson(jsonObjects: any, entities: any, includeRelations: any): Promise<any>;
     private static _handleRelations;
     private static _handleColumns;
+    static prepareSync(entities: any): any;
 }

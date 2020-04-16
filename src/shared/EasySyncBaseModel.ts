@@ -148,6 +148,10 @@ export class EasySyncBaseModel extends BaseModel {
         })
 
     }
+
+    public static prepareSync(entities){
+        return entities;
+    }
 }
 
 EasySyncBaseModel.CAN_BE_SYNCED = true;
