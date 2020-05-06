@@ -52,7 +52,7 @@ export class SyncJob {
         this._keyedModelClasses = EasySyncClientDb.getModel();
 
         let requestQueries = this._buildRequestQuery(queries);
-        if (Helper.isNull(this._lastSyncDates)) {
+        if (Object.keys(this._lastSyncDates).length === 0) {
             this._lastSyncDates = await this._getLastSyncModels(this._modelNames, requestQueries);
         }
 

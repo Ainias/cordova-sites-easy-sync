@@ -53,7 +53,7 @@ class SyncJob {
         return __awaiter(this, void 0, void 0, function* () {
             this._keyedModelClasses = EasySyncClientDb_1.EasySyncClientDb.getModel();
             let requestQueries = this._buildRequestQuery(queries);
-            if (shared_1.Helper.isNull(this._lastSyncDates)) {
+            if (Object.keys(this._lastSyncDates).length === 0) {
                 this._lastSyncDates = yield this._getLastSyncModels(this._modelNames, requestQueries);
             }
             yield this._doRuns(requestQueries);
