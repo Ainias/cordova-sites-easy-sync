@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.EasySyncBaseModel = void 0;
 const cordova_sites_database_1 = require("cordova-sites-database/dist/cordova-sites-database");
 const shared_1 = require("js-helper/dist/shared");
 class EasySyncBaseModel extends cordova_sites_database_1.BaseModel {
@@ -87,7 +88,7 @@ class EasySyncBaseModel extends cordova_sites_database_1.BaseModel {
                     if (entity === null) {
                         entity = new this();
                     }
-                    if (!jsonObject.version) {
+                    if (!jsonObject.version && jsonObject.version !== 0) {
                         jsonObject.version = 1;
                     }
                     entities[index] = Object.assign(entity, jsonObject);

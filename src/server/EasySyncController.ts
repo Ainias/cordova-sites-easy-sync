@@ -10,17 +10,27 @@ let typeorm = _typeorm;
 export class EasySyncController {
     static MAX_MODELS_PER_RUN: number = 50;
 
-    static async _doSyncModel(model, lastSynced, offset, where) {
+    static async _doSyncModel(model, lastSynced, offset, where, orderBy?) {
         let dateLastSynced = new Date(parseInt(lastSynced || 0));
         let newDateLastSynced = new Date().getTime();
+
+        orderBy = Helper.nonNull(orderBy, {"id": "ASC"});
+
         offset = parseInt(offset);
 
         where = where || {};
+        Object.keys(where).forEach(key => {
+            if (where[key].type && where[key].value && where[key].type === "like"){
+                where[key] = typeorm.Like(where[key].value);
+            }
+        });
+
         where = Object["assign"](where, {
             "updatedAt": typeorm.MoreThan(dateLastSynced),
         });
 
-        let entities = await model.find(where, undefined, this.MAX_MODELS_PER_RUN, offset, model.getRelations());
+
+        let entities = await model.find(where, orderBy, this.MAX_MODELS_PER_RUN, offset, model.getRelations());
         if (typeof model.prepareSync === "function") {
             entities = await model.prepareSync(entities);
         }
@@ -34,14 +44,14 @@ export class EasySyncController {
         };
     }
 
-    static async _syncModel(model, lastSynced, offset, where, req) {
+    static async _syncModel(model, lastSynced, offset, where, req, order?) {
         if (!model) {
             throw new Error("tried to sync not defined model!");
         }
         if (model.CAN_BE_SYNCED === false) {
             throw new Error("tried to sync unsyncable model " + model.getSchemaName());
         }
-        return this._doSyncModel(model, lastSynced, offset, where);
+        return this._doSyncModel(model, lastSynced, offset, where, order);
     }
 
     static async _execQuery(query, offset, req) {
@@ -52,7 +62,8 @@ export class EasySyncController {
 
         let lastSynced = Helper.nonNull(query.lastSynced, 0);
         let where = Helper.nonNull(query.where, {});
-        return this._syncModel(model, lastSynced, offset, where, req);
+        let orderBy = Helper.nonNull(query.orderBy, {});
+        return this._syncModel(model, lastSynced, offset, where, req, orderBy);
     }
 
     static async sync(req, res) {

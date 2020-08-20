@@ -82,7 +82,6 @@ export class ModifyEntitySite extends MenuSite {
             if (Helper.isSet(entity, column)) {
                 values[column] = entity[column];
             }
-
         });
         return values;
     }
@@ -95,6 +94,11 @@ export class ModifyEntitySite extends MenuSite {
         this.finish();
     }
 
+    async save(values){
+        let entity = await this.hydrate(values, this._entity);
+        await entity.save();
+    }
+
     async onViewLoaded() {
         let res = super.onViewLoaded();
 
@@ -102,8 +106,7 @@ export class ModifyEntitySite extends MenuSite {
             this.showLoadingSymbol();
 
             try {
-                let entity = await this.hydrate(values, this._entity);
-                await entity.save();
+                await this.save(values);
                 this.saveListener();
             } catch (e) {
                 console.error(e);
@@ -111,7 +114,6 @@ export class ModifyEntitySite extends MenuSite {
             } finally {
                 this.removeLoadingSymbol();
             }
-
         });
 
         if (Helper.isNotNull(window["CKEditor"])) {

@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.FileTransferPromise = void 0;
 const Helper_1 = require("js-helper/dist/shared/Helper");
 const FilePromise_1 = require("./FilePromise");
 const DataManager_1 = require("cordova-sites/dist/client/js/DataManager");

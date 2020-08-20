@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.EasySyncPartialModel = void 0;
 const EasySyncBaseModel_1 = require("./EasySyncBaseModel");
 const _typeorm = require("typeorm");
 const Helper_1 = require("js-helper/dist/shared/Helper");

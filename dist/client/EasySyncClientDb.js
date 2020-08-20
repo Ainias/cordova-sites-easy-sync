@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.EasySyncClientDb = void 0;
 const client_1 = require("cordova-sites/dist/client");
 const cordova_sites_database_1 = require("cordova-sites-database/dist/cordova-sites-database");
 const ClientModel_1 = require("./ClientModel");

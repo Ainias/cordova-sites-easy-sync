@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SetupEasySync1000000000500 = void 0;
 const typeorm_1 = require("typeorm");
 const cordova_sites_database_1 = require("cordova-sites-database/dist/cordova-sites-database");
 class SetupEasySync1000000000500 {

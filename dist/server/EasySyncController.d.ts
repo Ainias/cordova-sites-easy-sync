@@ -1,13 +1,13 @@
 export declare class EasySyncController {
     static MAX_MODELS_PER_RUN: number;
-    static _doSyncModel(model: any, lastSynced: any, offset: any, where: any): Promise<{
+    static _doSyncModel(model: any, lastSynced: any, offset: any, where: any, orderBy?: any): Promise<{
         model: any;
         newLastSynced: number;
         entities: any;
         nextOffset: any;
         shouldAskAgain: boolean;
     }>;
-    static _syncModel(model: any, lastSynced: any, offset: any, where: any, req: any): Promise<{
+    static _syncModel(model: any, lastSynced: any, offset: any, where: any, req: any, order?: any): Promise<{
         model: any;
         newLastSynced: number;
         entities: any;

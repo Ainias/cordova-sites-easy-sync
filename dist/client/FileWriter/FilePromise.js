@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.FilePromise = void 0;
 const Helper_1 = require("js-helper/dist/shared/Helper");
 const FileWriterPromise_1 = require("./FileWriterPromise");
 class FilePromise {

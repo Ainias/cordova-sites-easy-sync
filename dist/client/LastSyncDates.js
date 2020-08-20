@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.LastSyncDates = void 0;
 const cordova_sites_database_1 = require("cordova-sites-database/dist/cordova-sites-database");
 class LastSyncDates extends cordova_sites_database_1.BaseModel {
     constructor() {

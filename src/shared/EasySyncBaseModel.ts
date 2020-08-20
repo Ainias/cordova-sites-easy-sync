@@ -87,7 +87,7 @@ export class EasySyncBaseModel extends BaseModel {
                 if (entity === null) {
                     entity = new this();
                 }
-                if (!jsonObject.version) {
+                if (!jsonObject.version && jsonObject.version !== 0) {
                     jsonObject.version = 1;
                 }
 

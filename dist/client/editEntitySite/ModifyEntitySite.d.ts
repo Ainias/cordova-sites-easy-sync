@@ -13,5 +13,6 @@ export declare class ModifyEntitySite extends MenuSite {
     dehydrate(entity: any): Promise<{}>;
     validate(values: any, form: any): Promise<boolean>;
     saveListener(): void;
+    save(values: any): Promise<void>;
     onViewLoaded(): Promise<any[]>;
 }

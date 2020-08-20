@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.easySyncRoutes = void 0;
 const express = require("express");
 const EasySyncController_1 = require("./EasySyncController");
 const easySyncRoutes = express.Router();

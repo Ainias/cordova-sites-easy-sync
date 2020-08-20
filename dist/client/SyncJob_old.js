@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SyncJob_old = void 0;
 const LastSyncDates_1 = require("./LastSyncDates");
 const client_1 = require("cordova-sites/dist/client");
 const shared_1 = require("js-helper/dist/shared");

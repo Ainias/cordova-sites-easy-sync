@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.FileMedium = void 0;
 const EasySyncBaseModel_1 = require("./EasySyncBaseModel");
 const BaseDatabase_1 = require("cordova-sites-database/dist/BaseDatabase");
 const Helper_1 = require("js-helper/dist/shared/Helper");

@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ClientFileMedium = void 0;
 const EasySyncBaseModel_1 = require("../shared/EasySyncBaseModel");
 const FileTransferPromise_1 = require("./FileWriter/FileTransferPromise");
 const Helper_1 = require("js-helper/dist/shared/Helper");

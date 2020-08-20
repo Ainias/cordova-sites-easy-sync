@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.EasySyncController = void 0;
 const EasySyncServerDb_1 = require("./EasySyncServerDb");
 const _typeorm = require("typeorm");
 const shared_1 = require("js-helper/dist/shared");
@@ -17,16 +18,22 @@ let typeorm = _typeorm;
 //     typeorm = typeorm.default;
 // }
 class EasySyncController {
-    static _doSyncModel(model, lastSynced, offset, where) {
+    static _doSyncModel(model, lastSynced, offset, where, orderBy) {
         return __awaiter(this, void 0, void 0, function* () {
             let dateLastSynced = new Date(parseInt(lastSynced || 0));
             let newDateLastSynced = new Date().getTime();
+            orderBy = shared_1.Helper.nonNull(orderBy, { "id": "ASC" });
             offset = parseInt(offset);
             where = where || {};
+            Object.keys(where).forEach(key => {
+                if (where[key].type && where[key].value && where[key].type === "like") {
+                    where[key] = typeorm.Like(where[key].value);
+                }
+            });
             where = Object["assign"](where, {
                 "updatedAt": typeorm.MoreThan(dateLastSynced),
             });
-            let entities = yield model.find(where, undefined, this.MAX_MODELS_PER_RUN, offset, model.getRelations());
+            let entities = yield model.find(where, orderBy, this.MAX_MODELS_PER_RUN, offset, model.getRelations());
             if (typeof model.prepareSync === "function") {
                 entities = yield model.prepareSync(entities);
             }
@@ -39,7 +46,7 @@ class EasySyncController {
             };
         });
     }
-    static _syncModel(model, lastSynced, offset, where, req) {
+    static _syncModel(model, lastSynced, offset, where, req, order) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!model) {
                 throw new Error("tried to sync not defined model!");
@@ -47,7 +54,7 @@ class EasySyncController {
             if (model.CAN_BE_SYNCED === false) {
                 throw new Error("tried to sync unsyncable model " + model.getSchemaName());
             }
-            return this._doSyncModel(model, lastSynced, offset, where);
+            return this._doSyncModel(model, lastSynced, offset, where, order);
         });
     }
     static _execQuery(query, offset, req) {
@@ -58,7 +65,8 @@ class EasySyncController {
             }
             let lastSynced = shared_1.Helper.nonNull(query.lastSynced, 0);
             let where = shared_1.Helper.nonNull(query.where, {});
-            return this._syncModel(model, lastSynced, offset, where, req);
+            let orderBy = shared_1.Helper.nonNull(query.orderBy, {});
+            return this._syncModel(model, lastSynced, offset, where, req, orderBy);
         });
     }
     static sync(req, res) {

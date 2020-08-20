@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ModifyEntitySite = void 0;
 const MenuSite_1 = require("cordova-sites/dist/client/js/Context/MenuSite");
 const Form_1 = require("cordova-sites/dist/client/js/Form");
 const js_helper_1 = require("js-helper");
@@ -98,6 +99,12 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
     saveListener() {
         this.finish();
     }
+    save(values) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let entity = yield this.hydrate(values, this._entity);
+            yield entity.save();
+        });
+    }
     onViewLoaded() {
         const _super = Object.create(null, {
             onViewLoaded: { get: () => super.onViewLoaded }
@@ -107,8 +114,7 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
             this._form = new Form_1.Form(this.findBy(this._formSelector), (values) => __awaiter(this, void 0, void 0, function* () {
                 this.showLoadingSymbol();
                 try {
-                    let entity = yield this.hydrate(values, this._entity);
-                    yield entity.save();
+                    yield this.save(values);
                     this.saveListener();
                 }
                 catch (e) {
