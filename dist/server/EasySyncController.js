@@ -26,7 +26,7 @@ class EasySyncController {
             offset = parseInt(offset);
             where = where || {};
             Object.keys(where).forEach(key => {
-                if (where[key].type && where[key].value && where[key].type === "like") {
+                if (where[key] && where[key].type && where[key].value && where[key].type === "like") {
                     where[key] = typeorm.Like(where[key].value);
                 }
             });

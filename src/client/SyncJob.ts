@@ -205,7 +205,12 @@ export class SyncJob {
                             this._manyToManyRelations[table.name]["values"].push(value);
                         }
                     });
-                } else if ((relations[relation].type === "many-to-one" || (relations[relation].type === "one-to-one" && relations[relation].joinColumn)) && entity[relation]) {
+                } else if (
+                    (relations[relation].type === "many-to-one"
+                        || (relations[relation].type === "one-to-one" && relations[relation].joinColumn))
+                    //DO not check for a value of the relation here. Else If the first entity has no value set, the field
+                    // will not be set and therefore ignored for all other entites too
+                ) {
                     let fieldName;
                     if (relations[relation].joinColumn && relations[relation].joinColumn.name) {
                         fieldName = relations[relation].joinColumn.name;
@@ -303,11 +308,12 @@ export class SyncJob {
         let columns = schemaDefinition.columns;
 
         //Get fields from entity for including relation fields
-        let fields = Object.keys(changedEntities[0]);
+        const fields = Object.keys(changedEntities[0]);
 
         let values = [];
         let valueStrings = [];
         await Helper.asyncForEach(changedEntities, async (entity) => {
+
             let valueString = [];
 
             //Stellt die reihenfolge sicher

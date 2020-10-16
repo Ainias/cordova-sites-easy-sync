@@ -186,7 +186,11 @@ class SyncJob {
                         }
                     });
                 }
-                else if ((relations[relation].type === "many-to-one" || (relations[relation].type === "one-to-one" && relations[relation].joinColumn)) && entity[relation]) {
+                else if ((relations[relation].type === "many-to-one"
+                    || (relations[relation].type === "one-to-one" && relations[relation].joinColumn))
+                //DO not check for a value of the relation here. Else If the first entity has no value set, the field
+                // will not be set and therefore ignored for all other entites too
+                ) {
                     let fieldName;
                     if (relations[relation].joinColumn && relations[relation].joinColumn.name) {
                         fieldName = relations[relation].joinColumn.name;
@@ -275,7 +279,7 @@ class SyncJob {
             tableName = shared_1.Helper.toSnakeCase(tableName);
             let columns = schemaDefinition.columns;
             //Get fields from entity for including relation fields
-            let fields = Object.keys(changedEntities[0]);
+            const fields = Object.keys(changedEntities[0]);
             let values = [];
             let valueStrings = [];
             yield shared_1.Helper.asyncForEach(changedEntities, (entity) => __awaiter(this, void 0, void 0, function* () {
