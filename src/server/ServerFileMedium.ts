@@ -35,10 +35,10 @@ export class ServerFileMedium extends EasySyncBaseModel{
     }
 
     async writeImgToFile() {
-        let matches = this.src.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+        let matches = this.src.match(/^data:([A-Za-z]+)\/([A-Za-z-+0-9\/]+);base64,(.+)$/);
 
         //file is already a url
-        if (matches === null || matches.length !== 3) {
+        if (matches === null || matches.length !== 4) {
             return;
         }
 
@@ -49,8 +49,8 @@ export class ServerFileMedium extends EasySyncBaseModel{
                     .createHash('sha1')
                     .update(seed)
                     .digest('hex')
-                +"."+matches[1];
+                +"."+matches[2];
         }
-        return new Promise(r => fs.writeFile(ServerFileMedium.SAVE_PATH+name, matches[2], {encoding:"base64"}, r)).then(this.src = name);
+        return new Promise(r => fs.writeFile(ServerFileMedium.SAVE_PATH+name, matches[3], {encoding:"base64"}, r)).then(this.src = name);
     }
 }

@@ -37,13 +37,12 @@ export class ClientFileMedium extends EasySyncBaseModel {
         if (!isArray) {
             entities = [entities];
         }
+
         await Helper.asyncForEach(entities, async entity => {
             if (entity.saveOffline && device.platform !== "browser" && !entity.src.startsWith("data") && !entity.src.startsWith("http") && !entity.src.startsWith("//")) {
                 await new FileTransferPromise(entity.getServerUrl(false), entity.src).download().catch(e => console.log(e));
                 entity._isDownloaded = true;
             }
         }, true);
-
     }
-
 }

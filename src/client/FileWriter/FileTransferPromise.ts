@@ -22,7 +22,6 @@ export class FileTransferPromise {
     }
 
     async download() {
-        debugger;
         let blob = DataManager.fetchBlob(this.downloadUrl);
         let filePromise = await FilePromise.open(this.storagePath);
         let fileWriter = await filePromise.createWriter();
