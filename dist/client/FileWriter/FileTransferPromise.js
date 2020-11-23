@@ -26,7 +26,6 @@ class FileTransferPromise {
     }
     download() {
         return __awaiter(this, void 0, void 0, function* () {
-            debugger;
             let blob = DataManager_1.DataManager.fetchBlob(this.downloadUrl);
             let filePromise = yield FilePromise_1.FilePromise.open(this.storagePath);
             let fileWriter = yield filePromise.createWriter();

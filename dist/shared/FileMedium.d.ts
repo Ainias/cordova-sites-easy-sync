@@ -13,5 +13,6 @@ export declare class FileMedium extends EasySyncBaseModel {
     };
     getServerUrl(appendDate?: any): any;
     getUrl(): any;
+    setSrc(src: any): void;
     toString(): string;
 }

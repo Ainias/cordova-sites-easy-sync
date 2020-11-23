@@ -38,6 +38,10 @@ export class FileMedium extends EasySyncBaseModel {
         }
     }
 
+    setSrc(src){
+        this.src = src;
+    }
+
     toString(): string {
         console.warn("to string called on FileMedium. Only for dependency. Please look inside your sourcecode");
         return this.getUrl();
