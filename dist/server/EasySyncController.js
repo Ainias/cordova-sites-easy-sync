@@ -29,6 +29,12 @@ class EasySyncController {
                 if (where[key] && where[key].type && where[key].value && where[key].type === "like") {
                     where[key] = typeorm.Like(where[key].value);
                 }
+                else if (where[key] && where[key].type && where[key].value && where[key].type === ">") {
+                    where[key] = typeorm.MoreThan(where[key].value);
+                }
+                else if (where[key] && where[key].type && where[key].value && where[key].type === ">=") {
+                    where[key] = typeorm.MoreThanOrEqual(where[key].value);
+                }
             });
             where = Object["assign"](where, {
                 "updatedAt": typeorm.MoreThan(dateLastSynced),
