@@ -11,9 +11,9 @@ export declare class SyncJob {
     _finalRes: any;
     _syncPromise: any;
     _manyToManyRelations: {};
-    syncInBackgroundIfDataExists(queries: any): Promise<void>;
+    syncInBackgroundIfDataExists(queries: any, downloadImages?: boolean): Promise<void>;
     getSyncPromise(): Promise<any>;
-    sync(queries: any): Promise<any>;
+    sync(queries: any, downloadImages?: boolean): Promise<any>;
     private _doRuns;
     /**
      * Extract the Entities and saves them(?) for one model

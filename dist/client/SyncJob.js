@@ -31,13 +31,13 @@ class SyncJob {
         this._finalRes = {};
         this._manyToManyRelations = {};
     }
-    syncInBackgroundIfDataExists(queries) {
+    syncInBackgroundIfDataExists(queries, downloadImages) {
         return __awaiter(this, void 0, void 0, function* () {
             this._keyedModelClasses = EasySyncClientDb_1.EasySyncClientDb.getModel();
             let copiedQuery = shared_1.JsonHelper.deepCopy(queries);
             let requestQueries = this._buildRequestQuery(copiedQuery);
             this._lastSyncDates = yield this._getLastSyncModels(this._modelNames, requestQueries);
-            this._syncPromise = this.sync(queries);
+            this._syncPromise = this.sync(queries, downloadImages);
             if (Object["values"](this._lastSyncDates).some(lastSync => {
                 return lastSync["getLastSynced"]() === 0;
             })) {
@@ -50,8 +50,9 @@ class SyncJob {
             return this._syncPromise;
         });
     }
-    sync(queries) {
+    sync(queries, downloadImages) {
         return __awaiter(this, void 0, void 0, function* () {
+            downloadImages = shared_1.Helper.nonNull(downloadImages, true);
             this._keyedModelClasses = EasySyncClientDb_1.EasySyncClientDb.getModel();
             let requestQueries = this._buildRequestQuery(queries);
             if (Object.keys(this._lastSyncDates).length === 0) {
@@ -66,7 +67,7 @@ class SyncJob {
             yield Promise.all(lastSyncPromises);
             //disabled in doRuns. Cannot be reenabled sooner, but since lastSyncDates should not have any relations, it should be okay
             yield EasySyncClientDb_1.EasySyncClientDb.getInstance().rawQuery("PRAGMA foreign_keys = ON;");
-            if (this._finalRes["FileMedium"] && this._finalRes["FileMedium"]["changed"]) {
+            if (this._finalRes["FileMedium"] && this._finalRes["FileMedium"]["changed"] && downloadImages) {
                 yield ClientFileMedium_1.ClientFileMedium._handleImages(yield FileMedium_1.FileMedium.findByIds(this._finalRes["FileMedium"]["changed"]));
             }
             return this._finalRes;

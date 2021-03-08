@@ -13,29 +13,43 @@ exports.ClientFileMedium = void 0;
 const EasySyncBaseModel_1 = require("../shared/EasySyncBaseModel");
 const FileTransferPromise_1 = require("./FileWriter/FileTransferPromise");
 const Helper_1 = require("js-helper/dist/shared/Helper");
+const js_helper_1 = require("js-helper");
 const FilePromise_1 = require("./FileWriter/FilePromise");
 class ClientFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
     constructor() {
         super(...arguments);
         this.saveOffline = true;
-        this._isDownloaded = true;
+        this._isDownloaded = false;
+        this._isDownloadedPromise = new js_helper_1.PromiseWithHandlers();
+    }
+    isDownloadedState() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this._isDownloadedPromise;
+        });
     }
     setLoaded(isLoaded) {
-        // @ts-ignore
         super.setLoaded(isLoaded);
-        this._isDownloaded = true;
         FilePromise_1.FilePromise.open(this.src, { create: false }).then(() => this._isDownloaded = true).catch(e => {
             console.log("not downloaded, yet!");
             this._isDownloaded = false;
-            ClientFileMedium._handleImages(this);
+            // ClientFileMedium._handleImages(this)
+        }).finally(() => {
+            this._isDownloadedPromise.resolve(this._isDownloaded);
         });
+    }
+    getUrlWithoutDownload() {
+        return "";
+    }
+    getUrl() {
+        ClientFileMedium._handleImages(this);
+        return this.getUrlWithoutDownload();
     }
     save() {
         const _super = Object.create(null, {
             save: { get: () => super.save }
         });
         return __awaiter(this, void 0, void 0, function* () {
-            yield ClientFileMedium._handleImages(this);
+            // await ClientFileMedium._handleImages(this);
             return _super.save.call(this);
         });
     }
@@ -44,7 +58,7 @@ class ClientFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             saveMany: { get: () => super.saveMany }
         });
         return __awaiter(this, void 0, void 0, function* () {
-            yield ClientFileMedium._handleImages(entities);
+            // await ClientFileMedium._handleImages(entities);
             return _super.saveMany.call(this, entities);
         });
     }

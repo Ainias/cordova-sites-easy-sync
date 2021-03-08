@@ -1,5 +1,6 @@
 {
   "name": "cordova-sites-easy-sync",
+  "main": "dist/client.js",
   "displayName": "Easy Sync",
   "version": "0.1.0",
   "description": "Einfaches Syncen von Datenbank-Objekten auf dem Client per cordova sites",
@@ -9,20 +10,20 @@
   },
   "author": "Silas Günther",
   "peerDependencies": {
-    "cordova-sites-database": "git+https://github.com/Ainias/cordova-sites-database.git#0.4.5",
-    "cordova-sites": "git+https://github.com/Ainias/cordova-sites.git#0.7.0",
+    "cordova-sites-database": "git+https://github.com/Ainias/cordova-sites-database.git#0.5.0",
+    "cordova-sites": "git+https://github.com/Ainias/cordova-sites.git#0.7.7",
     "cs-event-manager": "git+https://github.com/Ainias/event-manager.git#0.2",
-    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.5.0",
+    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.6.6",
     "cordova-plugin-file": "^6.0.2",
     "express": "^4.16.4",
     "typeorm": "^0.2.14"
   },
   "dependencies": {},
   "devDependencies": {
-    "cordova-sites-database": "git+https://github.com/Ainias/cordova-sites-database.git#0.4.5",
-    "cordova-sites": "git+https://github.com/Ainias/cordova-sites.git#0.7.0",
+    "cordova-sites-database": "git+https://github.com/Ainias/cordova-sites-database.git#0.5.0",
+    "cordova-sites": "git+https://github.com/Ainias/cordova-sites.git#0.7.7",
     "cs-event-manager": "git+https://github.com/Ainias/event-manager.git#0.2",
-    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.5.0",
+    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.6.6",
     "cordova-plugin-device": "^2.0.2",
     "cordova-plugin-file": "^6.0.2",
     "cordova-sqlite-storage": "^3.2.0",

@@ -35,7 +35,6 @@ export class EasySyncController {
             "updatedAt": typeorm.MoreThan(dateLastSynced),
         });
 
-
         let entities = await model.find(where, orderBy, this.MAX_MODELS_PER_RUN, offset, model.getRelations());
         if (typeof model.prepareSync === "function") {
             entities = await model.prepareSync(entities);

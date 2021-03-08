@@ -26,7 +26,8 @@ export class SyncJob {
     _manyToManyRelations = {};
 
 
-    async syncInBackgroundIfDataExists(queries) {
+    async syncInBackgroundIfDataExists(queries, downloadImages?:boolean) {
+
         this._keyedModelClasses = EasySyncClientDb.getModel();
 
         let copiedQuery = JsonHelper.deepCopy(queries);
@@ -34,7 +35,7 @@ export class SyncJob {
         let requestQueries = this._buildRequestQuery(copiedQuery);
         this._lastSyncDates = await this._getLastSyncModels(this._modelNames, requestQueries);
 
-        this._syncPromise = this.sync(queries);
+        this._syncPromise = this.sync(queries, downloadImages);
 
         if (Object["values"](this._lastSyncDates).some(lastSync => {
             return lastSync["getLastSynced"]() === 0;
@@ -47,7 +48,8 @@ export class SyncJob {
         return this._syncPromise;
     }
 
-    async sync(queries) {
+    async sync(queries, downloadImages?: boolean) {
+        downloadImages = Helper.nonNull(downloadImages, true);
 
         this._keyedModelClasses = EasySyncClientDb.getModel();
 
@@ -68,7 +70,7 @@ export class SyncJob {
         //disabled in doRuns. Cannot be reenabled sooner, but since lastSyncDates should not have any relations, it should be okay
         await EasySyncClientDb.getInstance().rawQuery("PRAGMA foreign_keys = ON;");
 
-        if (this._finalRes["FileMedium"] && this._finalRes["FileMedium"]["changed"]) {
+        if (this._finalRes["FileMedium"] && this._finalRes["FileMedium"]["changed"] && downloadImages) {
             await ClientFileMedium._handleImages(await FileMedium.findByIds(this._finalRes["FileMedium"]["changed"]));
         }
 
@@ -322,7 +324,7 @@ export class SyncJob {
                 if (columns[field] && columns[field].transformer) {
                     val = columns[field].transformer.to(val);
                 }
-                if (columns[field] && columns[field].type === BaseDatabase.TYPES.SIMPLE_JSON){
+                if (columns[field] && columns[field].type === BaseDatabase.TYPES.SIMPLE_JSON) {
                     val = JSON.stringify(val);
                 }
                 values.push(val);

@@ -8,7 +8,7 @@ class FileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
     constructor() {
         super(...arguments);
         this.saveOffline = true;
-        this._isDownloaded = true;
+        this._isDownloaded = false;
     }
     static getColumnDefinitions() {
         let columns = super.getColumnDefinitions();
@@ -27,7 +27,7 @@ class FileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
         }
         return this.src;
     }
-    getUrl() {
+    getUrlWithoutDownload() {
         if (device.platform !== "browser" && this.saveOffline && this._isDownloaded && Helper_1.Helper.isNotNull(this.id) && !this.src.startsWith("data") && !this.src.startsWith("http")) {
             return "cdvfile://localhost/persistent/" + this.src;
         }
@@ -40,7 +40,7 @@ class FileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
     }
     toString() {
         console.warn("to string called on FileMedium. Only for dependency. Please look inside your sourcecode");
-        return this.getUrl();
+        return this.getUrlWithoutDownload();
     }
 }
 exports.FileMedium = FileMedium;

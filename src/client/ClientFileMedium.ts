@@ -1,6 +1,7 @@
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
 import {FileTransferPromise} from "./FileWriter/FileTransferPromise";
 import {Helper} from "js-helper/dist/shared/Helper";
+import {PromiseWithHandlers} from "js-helper";
 import {FilePromise} from "./FileWriter/FilePromise";
 
 declare const device;
@@ -9,26 +10,40 @@ export class ClientFileMedium extends EasySyncBaseModel {
 
     protected src: any;
     protected saveOffline: boolean = true;
-    protected _isDownloaded: boolean = true;
+    protected _isDownloaded: boolean = false;
+    protected _isDownloadedPromise: PromiseWithHandlers<boolean> = new PromiseWithHandlers()
+
+    async isDownloadedState(){
+        return this._isDownloadedPromise;
+    }
 
     setLoaded(isLoaded: any): void {
-        // @ts-ignore
         super.setLoaded(isLoaded);
-        this._isDownloaded = true;
         FilePromise.open(this.src, {create: false}).then(() => this._isDownloaded = true).catch(e => {
             console.log("not downloaded, yet!");
             this._isDownloaded = false;
-            ClientFileMedium._handleImages(this)
+            // ClientFileMedium._handleImages(this)
+        }).finally(() => {
+            this._isDownloadedPromise.resolve(this._isDownloaded);
         })
     }
 
+    getUrlWithoutDownload() {
+        return "";
+    }
+
+    getUrl() {
+        ClientFileMedium._handleImages(this);
+        return this.getUrlWithoutDownload();
+    }
+
     async save(): Promise<any> {
-        await ClientFileMedium._handleImages(this);
+        // await ClientFileMedium._handleImages(this);
         return super.save();
     }
 
     static async saveMany(entities) {
-        await ClientFileMedium._handleImages(entities);
+        // await ClientFileMedium._handleImages(entities);
         return super.saveMany(entities);
     }
 
