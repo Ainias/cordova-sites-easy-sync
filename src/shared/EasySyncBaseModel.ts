@@ -145,11 +145,16 @@ export class EasySyncBaseModel extends BaseModel {
             if (columns[columnName].escapeJS) {
                 entity[columnName] = XSSHelper.escapeJS(entity[columnName]);
             }
+            if (columns[columnName].type === BaseDatabase.TYPES.DATE
+                && !(entity[columnName] instanceof Date || Helper.isNull(entity[columnName]))
+            ) {
+                entity[columnName] = new Date(entity[columnName]);
+            }
         })
 
     }
 
-    public static prepareSync(entities){
+    public static prepareSync(entities) {
         return entities;
     }
 }

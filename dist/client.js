@@ -19,7 +19,6 @@ __exportStar(require("./client/FileWriter/FileTransferPromise"), exports);
 __exportStar(require("./client/FileWriter/FileWriterPromise"), exports);
 __exportStar(require("./client/LastSyncDates"), exports);
 __exportStar(require("./client/SyncJob"), exports);
-__exportStar(require("./client/SyncJob_old"), exports);
 __exportStar(require("./client/editEntitySite/ModifyEntitySite"), exports);
 __exportStar(require("./client/migration/SetupEasySync"), exports);
 //# sourceMappingURL=client.js.map

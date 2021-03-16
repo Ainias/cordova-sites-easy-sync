@@ -144,6 +144,10 @@ class EasySyncBaseModel extends cordova_sites_database_1.BaseModel {
             if (columns[columnName].escapeJS) {
                 entity[columnName] = shared_1.XSSHelper.escapeJS(entity[columnName]);
             }
+            if (columns[columnName].type === cordova_sites_database_1.BaseDatabase.TYPES.DATE
+                && !(entity[columnName] instanceof Date || shared_1.Helper.isNull(entity[columnName]))) {
+                entity[columnName] = new Date(entity[columnName]);
+            }
         });
     }
     static prepareSync(entities) {

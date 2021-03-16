@@ -35,12 +35,22 @@ class FileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             return this.getServerUrl();
         }
     }
+    getUrl() {
+        // @ts-ignore
+        if (typeof super.getUrl === "function") {
+            // @ts-ignore
+            return super.getUrl();
+        }
+        else {
+            return this.getUrlWithoutDownload();
+        }
+    }
     setSrc(src) {
         this.src = src;
     }
     toString() {
         console.warn("to string called on FileMedium. Only for dependency. Please look inside your sourcecode");
-        return this.getUrlWithoutDownload();
+        return this.getUrl();
     }
 }
 exports.FileMedium = FileMedium;

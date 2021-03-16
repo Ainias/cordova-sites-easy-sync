@@ -75,7 +75,6 @@ class SyncJob {
     }
     _doRuns(requestQueries) {
         return __awaiter(this, void 0, void 0, function* () {
-            //Initialize some variables
             let newLastSynced = null;
             let response = null;
             let offset = 0;

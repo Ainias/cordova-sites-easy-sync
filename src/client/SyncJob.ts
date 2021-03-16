@@ -27,7 +27,6 @@ export class SyncJob {
 
 
     async syncInBackgroundIfDataExists(queries, downloadImages?:boolean) {
-
         this._keyedModelClasses = EasySyncClientDb.getModel();
 
         let copiedQuery = JsonHelper.deepCopy(queries);
@@ -78,7 +77,6 @@ export class SyncJob {
     }
 
     private async _doRuns(requestQueries) {
-        //Initialize some variables
         let newLastSynced = null;
 
         let response = null;
