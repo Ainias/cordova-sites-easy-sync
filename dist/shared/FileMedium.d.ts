@@ -15,5 +15,6 @@ export declare class FileMedium extends EasySyncBaseModel {
     getUrlWithoutDownload(): any;
     getUrl(): any;
     setSrc(src: any): void;
+    getSrc(): any;
     toString(): string;
 }

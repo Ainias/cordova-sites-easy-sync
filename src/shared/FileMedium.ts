@@ -20,7 +20,7 @@ export class FileMedium extends EasySyncBaseModel {
 
     getServerUrl(appendDate?) {
         appendDate = Helper.nonNull(appendDate, true);
-        if (!this.src.startsWith("http") && !this.src.startsWith("//") && !this.src.startsWith("data")) {
+        if (!Helper.imageUrlIsEmpty(this.src) && !this.src.startsWith("http") && !this.src.startsWith("//") && !this.src.startsWith("data") ) {
             let path = FileMedium.PUBLIC_PATH + this.src;
             if (appendDate) {
                 path += "?t=" + new Date(this.updatedAt).getTime();
@@ -51,6 +51,10 @@ export class FileMedium extends EasySyncBaseModel {
 
     setSrc(src){
         this.src = src;
+    }
+
+    getSrc(){
+        return this.src;
     }
 
     toString(): string {

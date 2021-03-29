@@ -18,7 +18,7 @@ class FileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
     }
     getServerUrl(appendDate) {
         appendDate = Helper_1.Helper.nonNull(appendDate, true);
-        if (!this.src.startsWith("http") && !this.src.startsWith("//") && !this.src.startsWith("data")) {
+        if (!Helper_1.Helper.imageUrlIsEmpty(this.src) && !this.src.startsWith("http") && !this.src.startsWith("//") && !this.src.startsWith("data")) {
             let path = FileMedium.PUBLIC_PATH + this.src;
             if (appendDate) {
                 path += "?t=" + new Date(this.updatedAt).getTime();
@@ -47,6 +47,9 @@ class FileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
     }
     setSrc(src) {
         this.src = src;
+    }
+    getSrc() {
+        return this.src;
     }
     toString() {
         console.warn("to string called on FileMedium. Only for dependency. Please look inside your sourcecode");

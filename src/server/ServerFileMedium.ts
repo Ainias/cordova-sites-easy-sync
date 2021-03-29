@@ -43,7 +43,7 @@ export class ServerFileMedium extends EasySyncBaseModel{
         }
 
         let name = this._oldName;
-        if (Helper.isNull(name) || name.startsWith("data:") || name.startsWith("http")) {
+        if (Helper.isNull(name) || name.startsWith("data:") || name.startsWith("http") || name.trim() === "") {
             let seed = crypto.randomBytes(20);
             name = crypto
                     .createHash('sha1')
@@ -51,6 +51,8 @@ export class ServerFileMedium extends EasySyncBaseModel{
                     .digest('hex')
                 +"."+matches[2];
         }
+
+
         return new Promise(r => fs.writeFile(ServerFileMedium.SAVE_PATH+name, matches[3], {encoding:"base64"}, r)).then(this.src = name);
     }
 }
