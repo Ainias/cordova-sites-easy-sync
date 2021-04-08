@@ -295,7 +295,7 @@ export class SyncJob {
 
     private async _insertOrReplace(modelClass: any, changedEntities: any[]) {
 
-        const MAX_INSERT_IN_ONE_GO = 300;
+        const MAX_INSERT_IN_ONE_GO = 100;
 
         if (changedEntities.length === 0) {
             return;

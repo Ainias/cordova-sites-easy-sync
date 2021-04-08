@@ -270,7 +270,7 @@ class SyncJob {
     }
     _insertOrReplace(modelClass, changedEntities) {
         return __awaiter(this, void 0, void 0, function* () {
-            const MAX_INSERT_IN_ONE_GO = 300;
+            const MAX_INSERT_IN_ONE_GO = 100;
             if (changedEntities.length === 0) {
                 return;
             }
