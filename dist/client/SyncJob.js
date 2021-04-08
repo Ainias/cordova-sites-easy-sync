@@ -270,7 +270,7 @@ class SyncJob {
     }
     _insertOrReplace(modelClass, changedEntities) {
         return __awaiter(this, void 0, void 0, function* () {
-            const MAX_INSERT_IN_ONE_GO = 100;
+            const MAX_INSERT_IN_ONE_GO = 50;
             if (changedEntities.length === 0) {
                 return;
             }
@@ -298,13 +298,18 @@ class SyncJob {
                 });
                 valueStrings.push("(" + valueString.join(",") + ")");
                 if (valueStrings.length >= MAX_INSERT_IN_ONE_GO) {
+                    console.log("value string", valueStrings.length);
                     let sql = "INSERT OR REPLACE INTO " + tableName + " (" + fields.join(",") + ") VALUES " + valueStrings.join(",");
+                    if (tableName === "event") {
+                        debugger;
+                    }
                     yield this._queryRunner.query(sql, values);
                     valueStrings = [];
                     values = [];
                 }
             }));
             if (valueStrings.length > 0) {
+                console.log("value string 2", valueStrings.length);
                 let sql = "INSERT OR REPLACE INTO " + tableName + " (" + fields.join(",") + ") VALUES " + valueStrings.join(",");
                 yield this._queryRunner.query(sql, values);
             }

@@ -25,6 +25,8 @@ class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             save: { get: () => super.save }
         });
         return __awaiter(this, void 0, void 0, function* () {
+            console.log("saving image...");
+            debugger;
             yield ServerFileMedium._handleImages(this);
             return _super.save.call(this);
         });
@@ -44,6 +46,7 @@ class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             if (!isArray) {
                 entities = [entities];
             }
+            debugger;
             yield Helper_1.Helper.asyncForEach(entities, (entity) => __awaiter(this, void 0, void 0, function* () { return entity.writeImgToFile(); }), true);
         });
     }
