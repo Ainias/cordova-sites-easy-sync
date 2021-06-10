@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModifyEntitySite = void 0;
 const MenuSite_1 = require("cordova-sites/dist/client/js/Context/MenuSite");
-const Form_1 = require("cordova-sites/dist/client/js/Form");
+const client_1 = require("cordova-sites/dist/client");
 const js_helper_1 = require("js-helper");
 const EasySyncBaseModel_1 = require("../../shared/EasySyncBaseModel");
 class ModifyEntitySite extends MenuSite_1.MenuSite {
@@ -111,7 +111,7 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
         });
         return __awaiter(this, void 0, void 0, function* () {
             let res = _super.onViewLoaded.call(this);
-            this._form = new Form_1.Form(this.findBy(this._formSelector), (values) => __awaiter(this, void 0, void 0, function* () {
+            this._form = new client_1.Form(this.findBy(this._formSelector), (values) => __awaiter(this, void 0, void 0, function* () {
                 this.showLoadingSymbol();
                 try {
                     yield this.save(values);
