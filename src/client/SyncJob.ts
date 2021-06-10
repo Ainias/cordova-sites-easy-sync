@@ -295,7 +295,7 @@ export class SyncJob {
 
     private async _insertOrReplace(modelClass: any, changedEntities: any[]) {
 
-        const MAX_INSERT_IN_ONE_GO = 100;
+        const MAX_INSERT_IN_ONE_GO = 50;
 
         if (changedEntities.length === 0) {
             return;
@@ -332,7 +332,11 @@ export class SyncJob {
             valueStrings.push("(" + valueString.join(",") + ")");
 
             if (valueStrings.length >= MAX_INSERT_IN_ONE_GO) {
+                console.log("value string", valueStrings.length);
                 let sql = "INSERT OR REPLACE INTO " + tableName + " (" + fields.join(",") + ") VALUES " + valueStrings.join(",");
+                if (tableName === "event"){
+                    debugger;
+                }
                 await this._queryRunner.query(sql, values);
 
                 valueStrings = [];
@@ -341,6 +345,7 @@ export class SyncJob {
         });
 
         if (valueStrings.length > 0) {
+            console.log("value string 2", valueStrings.length);
             let sql = "INSERT OR REPLACE INTO " + tableName + " (" + fields.join(",") + ") VALUES " + valueStrings.join(",");
             await this._queryRunner.query(sql, values);
         }

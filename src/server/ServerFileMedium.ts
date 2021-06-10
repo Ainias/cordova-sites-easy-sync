@@ -16,6 +16,8 @@ export class ServerFileMedium extends EasySyncBaseModel{
     }
 
     async save(): Promise<any> {
+        console.log("saving image...");
+        debugger;
         await ServerFileMedium._handleImages(this);
         return super.save();
     }
@@ -30,6 +32,7 @@ export class ServerFileMedium extends EasySyncBaseModel{
         if (!isArray){
             entities = [entities];
         }
+        debugger;
 
         await Helper.asyncForEach(entities, async entity => entity.writeImgToFile(), true)
     }
