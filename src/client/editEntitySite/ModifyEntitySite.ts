@@ -3,6 +3,7 @@ import {Form} from "cordova-sites/dist/client";
 import {Helper} from "js-helper";
 import {EasySyncBaseModel} from "../../shared/EasySyncBaseModel";
 
+
 declare let CKEditor: any;
 
 export class ModifyEntitySite extends MenuSite {
