@@ -26,8 +26,6 @@ export class FileTransferPromise {
         let filePromise = await FilePromise.open(this.storagePath);
         let fileWriter = await filePromise.createWriter();
 
-        // blob = await blob;
-
         await fileWriter.write(await blob);
     }
 }

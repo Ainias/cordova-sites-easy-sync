@@ -29,7 +29,6 @@ class FileTransferPromise {
             let blob = DataManager_1.DataManager.fetchBlob(this.downloadUrl);
             let filePromise = yield FilePromise_1.FilePromise.open(this.storagePath);
             let fileWriter = yield filePromise.createWriter();
-            // blob = await blob;
             yield fileWriter.write(yield blob);
         });
     }

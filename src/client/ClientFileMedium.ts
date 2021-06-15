@@ -3,6 +3,7 @@ import {FileTransferPromise} from "./FileWriter/FileTransferPromise";
 import {Helper} from "js-helper/dist/shared/Helper";
 import {PromiseWithHandlers} from "js-helper";
 import {FilePromise} from "./FileWriter/FilePromise";
+import {FileMedium} from "../shared/FileMedium";
 
 declare const device;
 
@@ -59,5 +60,13 @@ export class ClientFileMedium extends EasySyncBaseModel {
                 entity._isDownloaded = true;
             }
         }, true);
+    }
+
+    static async deleteMany(entities: ClientFileMedium[]){
+        if (device.platform !== "browser") {
+            const res = await Helper.asyncForEach(entities, entity => FilePromise.delete(entity.src).catch(e => console.error(e)), true);
+            console.log("res", res);
+        }
+        return super.deleteMany.call(this, entities);
     }
 }

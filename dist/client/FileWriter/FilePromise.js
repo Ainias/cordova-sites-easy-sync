@@ -37,6 +37,17 @@ class FilePromise {
             });
         });
     }
+    static delete(file) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((r, rej) => {
+                window["resolveLocalFileSystemURL"]("cdvfile://localhost/persistent/", dirEntry => {
+                    dirEntry.getFile(file, { create: false }, fileEntry => {
+                        fileEntry.remove(r, rej, r);
+                    }, rej);
+                }, rej);
+            });
+        });
+    }
 }
 exports.FilePromise = FilePromise;
 //# sourceMappingURL=FilePromise.js.map

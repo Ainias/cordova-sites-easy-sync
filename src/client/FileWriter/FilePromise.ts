@@ -30,4 +30,14 @@ export class FilePromise {
             }, rej);
         });
     }
+
+    static async delete(file): Promise<FilePromise> {
+        return new Promise((r, rej) => {
+            window["resolveLocalFileSystemURL"]("cdvfile://localhost/persistent/", dirEntry => {
+                dirEntry.getFile(file, {create: false}, fileEntry => {
+                    fileEntry.remove(r, rej, r);
+                }, rej);
+            }, rej);
+        });
+    }
 }

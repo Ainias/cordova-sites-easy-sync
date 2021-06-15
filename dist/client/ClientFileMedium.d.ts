@@ -12,4 +12,5 @@ export declare class ClientFileMedium extends EasySyncBaseModel {
     save(): Promise<any>;
     static saveMany(entities: any): Promise<any>;
     static _handleImages(entities: any): Promise<void>;
+    static deleteMany(entities: ClientFileMedium[]): Promise<any>;
 }

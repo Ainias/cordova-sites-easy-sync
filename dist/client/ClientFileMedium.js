@@ -76,6 +76,18 @@ class ClientFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             }), true);
         });
     }
+    static deleteMany(entities) {
+        const _super = Object.create(null, {
+            deleteMany: { get: () => super.deleteMany }
+        });
+        return __awaiter(this, void 0, void 0, function* () {
+            if (device.platform !== "browser") {
+                const res = yield Helper_1.Helper.asyncForEach(entities, entity => FilePromise_1.FilePromise.delete(entity.src).catch(e => console.error(e)), true);
+                console.log("res", res);
+            }
+            return _super.deleteMany.call(this, entities);
+        });
+    }
 }
 exports.ClientFileMedium = ClientFileMedium;
 //# sourceMappingURL=ClientFileMedium.js.map

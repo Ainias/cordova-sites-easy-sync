@@ -6,32 +6,32 @@
   "description": "Einfaches Syncen von Datenbank-Objekten auf dem Client per cordova sites",
   "scripts": {
     "build": "node bin/build.js & tsc",
-    "update packages": "node bin/updateCopies.js"
+    "update packages": "node bin/updateCopies.js",
+    "force-audit-fix": "npx npm-force-resolutions"
   },
   "author": "Silas Günther",
   "peerDependencies": {
-    "cordova-sites-database": "git+https://github.com/Ainias/cordova-sites-database.git#0.5.0",
-    "cordova-sites": "git+https://github.com/Ainias/cordova-sites.git#0.7.12",
-    "cs-event-manager": "git+https://github.com/Ainias/event-manager.git#0.2",
-    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.7.0",
+    "cordova-sites-database": "git+https://github.com/Ainias/cordova-sites-database.git#0.5.1",
+    "cordova-sites": "git+https://github.com/Ainias/cordova-sites.git#0.7.15",
+    "cs-event-manager": "git+https://github.com/Ainias/event-manager.git#0.2.1",
+    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.7.5",
     "cordova-plugin-file": "^6.0.2",
-    "express": "^4.16.4",
-    "typeorm": "^0.2.14"
+    "cordova-plugin-device": "^2.0.3",
+    "cordova-sqlite-storage": "^6.0.0",
+    "localforage": "^1.9.0",
+    "sql.js": "^1.5.0",
+    "express": "^4.17.1",
+    "typeorm": "^0.2.34"
   },
   "dependencies": {},
   "devDependencies": {
-    "cordova-sites-database": "git+https://github.com/Ainias/cordova-sites-database.git#0.5.0",
-    "cordova-sites": "git+https://github.com/Ainias/cordova-sites.git#0.7.12",
-    "cs-event-manager": "git+https://github.com/Ainias/event-manager.git#0.2",
-    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.7.0",
-    "cordova-plugin-device": "^2.0.2",
-    "cordova-plugin-file": "^6.0.2",
-    "cordova-sqlite-storage": "^3.2.0",
-    "localforage": "^1.7.3",
-    "sql.js": "^0.5.0",
-    "express": "^4.17.1",
-    "@types/node": "^12.12.14",
-    "typeorm": "^0.2.22",
-    "typescript": "^3.7.2"
+    "@types/node": "^15.12.2",
+    "typescript": "^4.3.2",
+    "npm-force-resolutions": "^0.0.10"
+  },
+  "resolutions": {
+    "glob-parent": "5.1.2",
+    "immer": "8.0.1",
+    "browserslist": "4.16.6"
   }
 }

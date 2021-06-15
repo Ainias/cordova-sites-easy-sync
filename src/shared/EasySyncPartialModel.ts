@@ -73,7 +73,7 @@ export class EasySyncPartialModel extends EasySyncBaseModel {
         let loadPromises = [];
         let addLoadPromises = [];
         jsonObjects.forEach((jsonObject, index) => {
-            addLoadPromises.push(new Promise(async resolve => {
+            addLoadPromises.push(new Promise<void>(async resolve => {
                 let entity = null;
                 if (entities.length > index) {
                     entity = entities[index];
