@@ -10,6 +10,7 @@ let pathsToProjects = [
     // "/home/silas/Projekte/Web/stories",
     "/home/silas/Projekte/i9/mbb",
     "/home/silas/Projekte/web/smd-mail",
+    "/home/silas/Projekte/web/hoffnungsfest",
     "/home/silas/Projekte/web/cordova-sites-user-management",
     // "/home/silas/Projekte/Web/bible-lexicon",
     // "/home/silas/Projekte/Web/wordRotator",

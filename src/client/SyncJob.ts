@@ -265,7 +265,7 @@ export class SyncJob {
 
     private async _getLastSyncModels(modelNames, requestQueries) {
         //Load syncModels
-        let lastSyncModelsArray = await LastSyncDates.find({
+        let lastSyncModelsArray = <LastSyncDates[]>await LastSyncDates.find({
             "model":
                 typeorm.In(modelNames)
         });

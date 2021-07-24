@@ -3,20 +3,19 @@ import {Form} from "cordova-sites/dist/client";
 import {Helper} from "js-helper";
 import {EasySyncBaseModel} from "../../shared/EasySyncBaseModel";
 
-
 declare let CKEditor: any;
 
-export class ModifyEntitySite extends MenuSite {
-    protected _formSelector: string;
-    protected _ckEditorConfig;
-    private _entity;
-    private _model: any;
-    private _form: any;
+export class ModifyEntitySite<Model extends EasySyncBaseModel> extends MenuSite {
+    protected formSelector: string;
+    protected ckEditorConfig;
+    private entity: Model;
+    private readonly model: any;
+    private form: any;
 
-    constructor(siteManager, view, model, menuTemplate) {
+    constructor(siteManager, view, model, menuTemplate?) {
         super(siteManager, view, menuTemplate);
-        this._formSelector = ".entity-form";
-        this._ckEditorConfig = {
+        this.formSelector = ".entity-form";
+        this.ckEditorConfig = {
             ".editor": {
                 toolbar: ['bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote'],
                 removePlugins: ["Heading", "Image", "ImageCaption", "ImageStyle", "ImageToolbar", "ImageUpload", "Table", "TableToolbar", "MediaEmbed", "CKFinderUploadAdapter"],
@@ -24,25 +23,25 @@ export class ModifyEntitySite extends MenuSite {
             }
         };
 
-        this._entity = null;
-        this._model = model;
+        this.entity = null;
+        this.model = model;
     }
 
-    async getEntityFromParameters(constructParameters) {
+    async getEntityFromParameters(constructParameters): Promise<Model> {
 
-        if (!(this._model.prototype instanceof EasySyncBaseModel)) {
+        if (!(this.model.prototype instanceof EasySyncBaseModel)) {
             throw {
-                "error": "wrong class given! Expected EasySyncBaseModel, given " + this._model.name
+                "error": "wrong class given! Expected EasySyncBaseModel, given " + this.model.name
             };
         }
 
         let entity = null;
         if (Helper.isSet(constructParameters, "id")) {
-            entity = this._model.findById(constructParameters["id"], this._model.getRelations());
+            entity = this.model.findById(constructParameters["id"], this.model.getRelations());
         }
 
         if (Helper.isNull(entity)) {
-            entity = new this._model();
+            entity = new this.model();
         }
         return entity;
     }
@@ -56,18 +55,18 @@ export class ModifyEntitySite extends MenuSite {
         return res;
     }
 
-    async setEntity(entity) {
-        this._entity = entity;
+    async setEntity(entity: Model) {
+        this.entity = entity;
 
         await this._viewLoadedPromise;
-        let values = await this.dehydrate(this._entity);
+        let values = await this.dehydrate(this.entity);
         if (Helper.isNotNull(values)) {
-            await this._form.setValues(values);
+            await this.form.setValues(values);
         }
     }
 
-    async hydrate(values, entity) {
-        let schemaDefinition = entity.constructor.getSchemaDefinition();
+    async hydrate(values: { [key: string]: string }, entity: Model) {
+        let schemaDefinition = this.model.getSchemaDefinition();
         Object.keys(schemaDefinition.columns).forEach(column => {
             if (Helper.isSet(values, column)) {
                 entity[column] = values[column];
@@ -76,9 +75,9 @@ export class ModifyEntitySite extends MenuSite {
         return entity;
     }
 
-    async dehydrate(entity) {
+    async dehydrate(entity: Model): Promise<{ [key: string]: string | number | Date }> {
         let values = {};
-        let schemaDefinition = entity.constructor.getSchemaDefinition();
+        let schemaDefinition = this.model.getSchemaDefinition();
         Object.keys(schemaDefinition.columns).forEach(column => {
             if (Helper.isSet(entity, column)) {
                 values[column] = entity[column];
@@ -91,44 +90,49 @@ export class ModifyEntitySite extends MenuSite {
         return true;
     }
 
-    saveListener() {
+    onSaved() {
         this.finish();
     }
 
-    async save(values){
-        let entity = await this.hydrate(values, this._entity);
+    async save(values) {
+        let entity = await this.hydrate(values, this.entity);
         await entity.save();
     }
 
     async onViewLoaded() {
         let res = super.onViewLoaded();
 
-        this._form = new Form(this.findBy(this._formSelector), async values => {
+        this.form = new Form(this.findBy(this.formSelector), async values => {
             this.showLoadingSymbol();
 
             try {
                 await this.save(values);
-                this.saveListener();
+                this.onSaved();
             } catch (e) {
                 console.error(e);
-                this._form.setErrors({"error": e.message});
+                this.form.setErrors({"error": e.message});
             } finally {
                 this.removeLoadingSymbol();
             }
         });
 
         if (Helper.isNotNull(window["CKEditor"])) {
-            Object.keys(this._ckEditorConfig).forEach(selector => {
+            Object.keys(this.ckEditorConfig).forEach(selector => {
+                console.log("add CK-Editor", selector);
                 this.findBy(selector, true).forEach(async e => {
-                    this._form.addEditor(await CKEditor.create(e, this._ckEditorConfig[selector]));
+                    this.form.addEditor(await CKEditor.create(e, this.ckEditorConfig[selector]));
                 });
             });
         }
 
-        this._form.addValidator(async values => {
-            return await this.validate(values, this._form);
+        this.form.addValidator(async values => {
+            return await this.validate(values, this.form);
         });
 
         return res;
+    }
+
+    getEntity(){
+        return this.entity;
     }
 }

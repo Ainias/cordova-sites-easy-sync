@@ -104,7 +104,6 @@ export class EasySyncController {
     }
 
     static async _doModifyModel(model, modelData, entities?) {
-
         let isArray = true;
         if (!Array.isArray(modelData)) {
             isArray = false;

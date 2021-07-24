@@ -1,13 +1,17 @@
 import {Helper} from "js-helper/dist/shared/Helper";
 import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
+import {PassThrough, Readable} from "stream";
+
 const crypto = require("crypto");
 const fs = require("fs");
 
-export class ServerFileMedium extends EasySyncBaseModel{
+export class ServerFileMedium extends EasySyncBaseModel {
 
     static SAVE_PATH: string = "./img_";
     private _oldName: any;
     protected src: any;
+
+    static createDownscalePipe: () => PassThrough = null;
 
     setLoaded(isLoaded: any): void {
         // @ts-ignore
@@ -16,8 +20,6 @@ export class ServerFileMedium extends EasySyncBaseModel{
     }
 
     async save(): Promise<any> {
-        console.log("saving image...");
-        debugger;
         await ServerFileMedium._handleImages(this);
         return super.save();
     }
@@ -27,12 +29,11 @@ export class ServerFileMedium extends EasySyncBaseModel{
         return super.saveMany(entities);
     }
 
-    static async _handleImages(entities){
+    private static async _handleImages(entities) {
         let isArray = Array.isArray(entities);
-        if (!isArray){
+        if (!isArray) {
             entities = [entities];
         }
-        debugger;
 
         await Helper.asyncForEach(entities, async entity => entity.writeImgToFile(), true)
     }
@@ -52,10 +53,38 @@ export class ServerFileMedium extends EasySyncBaseModel{
                     .createHash('sha1')
                     .update(seed)
                     .digest('hex')
-                +"."+matches[2];
+                + "." + matches[2];
+                // + ".webp";
         }
 
+        const dataBuffer = Buffer.from(matches[3], 'base64');
+        const inputStream = new Readable();
+        let dataStream = new PassThrough();
 
-        return new Promise(r => fs.writeFile(ServerFileMedium.SAVE_PATH+name, matches[3], {encoding:"base64"}, r)).then(this.src = name);
+        const writeStream = fs.createWriteStream(ServerFileMedium.SAVE_PATH + name);
+        if (ServerFileMedium.createDownscalePipe && ServerFileMedium.isImage(matches[2])) {
+            dataStream = ServerFileMedium.createDownscalePipe();
+        }
+        inputStream.pipe(dataStream);
+
+        inputStream.push(dataBuffer);
+        inputStream.push(null);
+
+        const resultPromise = new Promise(r => writeStream.addListener("finish", r)).then(this.src = name);
+        dataStream.pipe(writeStream);
+        return resultPromise;
+        // return new Promise(r => fs.writeFile(ServerFileMedium.SAVE_PATH+name, , {encoding:"base64"}, r)).then(this.src = name);
+    }
+
+    private static isImage(ending: string) {
+        switch (ending.toLowerCase()) {
+            case 'png':
+            case 'jpg':
+            case 'jpeg':
+            case 'webp':
+                return true;
+            default:
+                return false
+        }
     }
 }

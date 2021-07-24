@@ -17,30 +17,30 @@ const EasySyncBaseModel_1 = require("../../shared/EasySyncBaseModel");
 class ModifyEntitySite extends MenuSite_1.MenuSite {
     constructor(siteManager, view, model, menuTemplate) {
         super(siteManager, view, menuTemplate);
-        this._formSelector = ".entity-form";
-        this._ckEditorConfig = {
+        this.formSelector = ".entity-form";
+        this.ckEditorConfig = {
             ".editor": {
                 toolbar: ['bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote'],
                 removePlugins: ["Heading", "Image", "ImageCaption", "ImageStyle", "ImageToolbar", "ImageUpload", "Table", "TableToolbar", "MediaEmbed", "CKFinderUploadAdapter"],
                 language: "de"
             }
         };
-        this._entity = null;
-        this._model = model;
+        this.entity = null;
+        this.model = model;
     }
     getEntityFromParameters(constructParameters) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!(this._model.prototype instanceof EasySyncBaseModel_1.EasySyncBaseModel)) {
+            if (!(this.model.prototype instanceof EasySyncBaseModel_1.EasySyncBaseModel)) {
                 throw {
-                    "error": "wrong class given! Expected EasySyncBaseModel, given " + this._model.name
+                    "error": "wrong class given! Expected EasySyncBaseModel, given " + this.model.name
                 };
             }
             let entity = null;
             if (js_helper_1.Helper.isSet(constructParameters, "id")) {
-                entity = this._model.findById(constructParameters["id"], this._model.getRelations());
+                entity = this.model.findById(constructParameters["id"], this.model.getRelations());
             }
             if (js_helper_1.Helper.isNull(entity)) {
-                entity = new this._model();
+                entity = new this.model();
             }
             return entity;
         });
@@ -60,17 +60,17 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
     }
     setEntity(entity) {
         return __awaiter(this, void 0, void 0, function* () {
-            this._entity = entity;
+            this.entity = entity;
             yield this._viewLoadedPromise;
-            let values = yield this.dehydrate(this._entity);
+            let values = yield this.dehydrate(this.entity);
             if (js_helper_1.Helper.isNotNull(values)) {
-                yield this._form.setValues(values);
+                yield this.form.setValues(values);
             }
         });
     }
     hydrate(values, entity) {
         return __awaiter(this, void 0, void 0, function* () {
-            let schemaDefinition = entity.constructor.getSchemaDefinition();
+            let schemaDefinition = this.model.getSchemaDefinition();
             Object.keys(schemaDefinition.columns).forEach(column => {
                 if (js_helper_1.Helper.isSet(values, column)) {
                     entity[column] = values[column];
@@ -82,7 +82,7 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
     dehydrate(entity) {
         return __awaiter(this, void 0, void 0, function* () {
             let values = {};
-            let schemaDefinition = entity.constructor.getSchemaDefinition();
+            let schemaDefinition = this.model.getSchemaDefinition();
             Object.keys(schemaDefinition.columns).forEach(column => {
                 if (js_helper_1.Helper.isSet(entity, column)) {
                     values[column] = entity[column];
@@ -96,12 +96,12 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
             return true;
         });
     }
-    saveListener() {
+    onSaved() {
         this.finish();
     }
     save(values) {
         return __awaiter(this, void 0, void 0, function* () {
-            let entity = yield this.hydrate(values, this._entity);
+            let entity = yield this.hydrate(values, this.entity);
             yield entity.save();
         });
     }
@@ -111,32 +111,36 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
         });
         return __awaiter(this, void 0, void 0, function* () {
             let res = _super.onViewLoaded.call(this);
-            this._form = new client_1.Form(this.findBy(this._formSelector), (values) => __awaiter(this, void 0, void 0, function* () {
+            this.form = new client_1.Form(this.findBy(this.formSelector), (values) => __awaiter(this, void 0, void 0, function* () {
                 this.showLoadingSymbol();
                 try {
                     yield this.save(values);
-                    this.saveListener();
+                    this.onSaved();
                 }
                 catch (e) {
                     console.error(e);
-                    this._form.setErrors({ "error": e.message });
+                    this.form.setErrors({ "error": e.message });
                 }
                 finally {
                     this.removeLoadingSymbol();
                 }
             }));
             if (js_helper_1.Helper.isNotNull(window["CKEditor"])) {
-                Object.keys(this._ckEditorConfig).forEach(selector => {
+                Object.keys(this.ckEditorConfig).forEach(selector => {
+                    console.log("add CK-Editor", selector);
                     this.findBy(selector, true).forEach((e) => __awaiter(this, void 0, void 0, function* () {
-                        this._form.addEditor(yield CKEditor.create(e, this._ckEditorConfig[selector]));
+                        this.form.addEditor(yield CKEditor.create(e, this.ckEditorConfig[selector]));
                     }));
                 });
             }
-            this._form.addValidator((values) => __awaiter(this, void 0, void 0, function* () {
-                return yield this.validate(values, this._form);
+            this.form.addValidator((values) => __awaiter(this, void 0, void 0, function* () {
+                return yield this.validate(values, this.form);
             }));
             return res;
         });
+    }
+    getEntity() {
+        return this.entity;
     }
 }
 exports.ModifyEntitySite = ModifyEntitySite;
