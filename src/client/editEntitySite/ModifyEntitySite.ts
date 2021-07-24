@@ -6,6 +6,7 @@ import {EasySyncBaseModel} from "../../shared/EasySyncBaseModel";
 declare let CKEditor: any;
 
 export class ModifyEntitySite<Model extends EasySyncBaseModel> extends MenuSite {
+
     protected formSelector: string;
     protected ckEditorConfig;
     private entity: Model;
