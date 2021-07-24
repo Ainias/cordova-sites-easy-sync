@@ -2,7 +2,7 @@
   "name": "cordova-sites-easy-sync",
   "main": "dist/client.js",
   "displayName": "Easy Sync",
-  "version": "0.1.0",
+  "version": "0.7.10",
   "description": "Einfaches Syncen von Datenbank-Objekten auf dem Client per cordova sites",
   "scripts": {
     "build": "node bin/build.js & tsc",
