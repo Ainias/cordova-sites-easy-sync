@@ -153,6 +153,10 @@ class EasySyncBaseModel extends cordova_sites_database_1.BaseModel {
     static prepareSync(entities) {
         return entities;
     }
+    static deleteMany(entities, deleteFully) {
+        // @ts-ignore
+        return this._database.deleteEntity(entities, undefined, deleteFully);
+    }
 }
 exports.EasySyncBaseModel = EasySyncBaseModel;
 EasySyncBaseModel.delegateClass = null;

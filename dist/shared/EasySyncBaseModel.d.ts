@@ -20,4 +20,5 @@ export declare class EasySyncBaseModel extends BaseModel {
     private static _handleRelations;
     private static _handleColumns;
     static prepareSync(entities: any): any;
+    static deleteMany(entities: any, deleteFully?: boolean): Promise<any>;
 }

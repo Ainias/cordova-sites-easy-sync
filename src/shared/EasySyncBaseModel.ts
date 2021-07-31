@@ -157,6 +157,11 @@ export class EasySyncBaseModel extends BaseModel {
     public static prepareSync(entities) {
         return entities;
     }
+
+    public static deleteMany(entities, deleteFully?: boolean){
+        // @ts-ignore
+        return this._database.deleteEntity(entities, undefined, deleteFully);
+    }
 }
 
 EasySyncBaseModel.CAN_BE_SYNCED = true;

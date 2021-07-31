@@ -17,7 +17,6 @@ export class EasySyncServerDb extends BaseDatabase {
     }
 
     async saveEntity(entities) {
-
         let isArray = true;
         if (!Array.isArray(entities)) {
             entities = [entities];
@@ -65,10 +64,8 @@ export class EasySyncServerDb extends BaseDatabase {
             return super.deleteEntity(entities, model);
         }
 
-        // let isArray = true;
         if (!Array.isArray(entities)) {
             entities = [entities];
-            // isArray = false;
         }
 
         if (entities.length === 0) {
