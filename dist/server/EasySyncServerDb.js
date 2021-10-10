@@ -73,10 +73,8 @@ class EasySyncServerDb extends cordova_sites_database_1.BaseDatabase {
             if (deleteFully) {
                 return _super.deleteEntity.call(this, entities, model);
             }
-            // let isArray = true;
             if (!Array.isArray(entities)) {
                 entities = [entities];
-                // isArray = false;
             }
             if (entities.length === 0) {
                 return entities;
