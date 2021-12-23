@@ -8,4 +8,4 @@ export * from './client/FileWriter/FileWriterPromise';
 export * from './client/LastSyncDates';
 export * from './client/SyncJob';
 export * from './client/editEntitySite/ModifyEntitySite';
-export * from './client/migration/SetupEasySync';
+export * from './client/migrations/SetupEasySync';

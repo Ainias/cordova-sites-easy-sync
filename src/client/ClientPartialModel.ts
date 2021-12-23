@@ -1,11 +1,10 @@
-import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
-import {BaseDatabase, BaseModel} from "cordova-sites-database/dist/cordova-sites-database";
-import {ClientModel} from "./ClientModel";
-import {DataManager} from "cordova-sites/dist/client";
-import {Helper} from "js-helper/dist/shared/Helper";
+import { EasySyncBaseModel } from '../shared/EasySyncBaseModel';
+import { BaseModel } from 'cordova-sites-database/dist/cordova-sites-database';
+import { ClientModel } from './ClientModel';
+import { DataManager } from 'cordova-sites/dist/client';
+import { Helper } from 'js-helper/dist/shared/Helper';
 
 export class ClientPartialModel extends EasySyncBaseModel {
-
     clientId: number;
 
     static SAVE_PATH: string;
@@ -17,15 +16,15 @@ export class ClientPartialModel extends EasySyncBaseModel {
     }
 
     static getColumnDefinitions() {
-        let columns = super.getColumnDefinitions();
-        if (columns["id"]) {
-            columns["id"]["primary"] = false;
-            columns["id"]["generated"] = false;
-            columns["id"]["nullable"] = true;
-            columns["id"]["unique"] = true;
+        const columns = super.getColumnDefinitions();
+        if (columns.id && typeof columns.id !== 'string') {
+            columns.id.primary = false;
+            delete columns.id.generated;
+            columns.id.nullable = true;
+            columns.id.unique = true;
         }
-        columns["clientId"] = {
-            type: "integer",
+        columns.clientId = {
+            type: 'integer',
             primary: true,
             generated: true,
         };
@@ -34,28 +33,26 @@ export class ClientPartialModel extends EasySyncBaseModel {
     }
 
     toJSON(includeFull?) {
-        let relations = (<typeof ClientPartialModel>this.constructor).getRelationDefinitions();
-        let columns = (<typeof ClientPartialModel>this.constructor).getColumnDefinitions();
+        const relations = (<typeof ClientPartialModel>this.constructor).getRelationDefinitions();
+        const columns = (<typeof ClientPartialModel>this.constructor).getColumnDefinitions();
 
-        let obj = {};
-        Object.keys(columns).forEach(attribute => {
-            if (attribute !== "clientId") {
+        const obj = {};
+        Object.keys(columns).forEach((attribute) => {
+            if (attribute !== 'clientId') {
                 obj[attribute] = this[attribute];
             }
         });
-        Object.keys(relations).forEach(relationName => {
+        Object.keys(relations).forEach((relationName) => {
             if (includeFull === true) {
                 obj[relationName] = this[relationName];
+            } else if (Array.isArray(this[relationName])) {
+                const ids = [];
+                this[relationName].forEach((child) => child && ids.push(child.id));
+                obj[relationName] = ids;
+            } else if (this[relationName] instanceof BaseModel) {
+                obj[relationName] = this[relationName].id;
             } else {
-                if (Array.isArray(this[relationName])) {
-                    let ids = [];
-                    this[relationName].forEach(child => (child && ids.push(child.id)));
-                    obj[relationName] = ids;
-                } else if (this[relationName] instanceof BaseModel) {
-                    obj[relationName] = this[relationName].id;
-                } else {
-                    obj[relationName] = null;
-                }
+                obj[relationName] = null;
             }
         });
         return obj;
@@ -64,19 +61,19 @@ export class ClientPartialModel extends EasySyncBaseModel {
     async save(local?): Promise<any> {
         local = Helper.nonNull(local, true);
 
-        if (typeof this.clientId !== "number"){
+        if (typeof this.clientId !== 'number') {
             this.clientId = undefined;
         }
 
         if (!local) {
-            let values = this.toJSON();
-            let data = await DataManager.send((<typeof ClientModel>this.constructor).SAVE_PATH, {
-                "model": (<typeof ClientModel>this.constructor).getSchemaName(),
-                "values": values
+            const values = this.toJSON();
+            const data = await DataManager.send((<typeof ClientModel>this.constructor).SAVE_PATH, {
+                model: (<typeof ClientModel>this.constructor).getSchemaName(),
+                values,
             });
 
             if (data.success !== false) {
-                await (<typeof ClientModel>this.constructor)._fromJson(data, this, true);
+                await (<typeof ClientModel>this.constructor).fromJson(data, this, true);
             }
         }
 
@@ -84,11 +81,10 @@ export class ClientPartialModel extends EasySyncBaseModel {
     }
 
     async delete(local?) {
-
         if (!local) {
-            let data = await DataManager.send((<typeof ClientModel>this.constructor).DELETE_PATH, {
-                "model": (<typeof ClientModel>this.constructor).getSchemaName(),
-                "id": this.id
+            const data = await DataManager.send((<typeof ClientModel>this.constructor).DELETE_PATH, {
+                model: (<typeof ClientModel>this.constructor).getSchemaName(),
+                id: this.id,
             });
             if (data.success === false) {
                 throw new Error(data.errors);
@@ -101,26 +97,26 @@ export class ClientPartialModel extends EasySyncBaseModel {
     static async saveMany(entities, local?) {
         local = Helper.nonNull(local, true);
 
-        entities.forEach(entity => {
-            if (typeof entity.clientId !== "number"){
+        entities.forEach((entity) => {
+            if (typeof entity.clientId !== 'number') {
                 entity.clientId = undefined;
             }
         });
 
         if (!local) {
-            let values = [];
+            const values = [];
 
-            entities.forEach(entity => {
-                values.push(entity.toJSON())
+            entities.forEach((entity) => {
+                values.push(entity.toJSON());
             });
 
-            let data = await DataManager.send(this.SAVE_PATH, {
-                "model": this.getSchemaName(),
-                "values": values
+            const data = await DataManager.send(this.SAVE_PATH, {
+                model: this.getSchemaName(),
+                values,
             });
 
             if (data.success !== false) {
-                entities = await this._fromJson(data, entities, true);
+                entities = (<typeof ClientModel>(<unknown>this)).fromJson(data, entities, true);
             }
         }
 

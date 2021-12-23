@@ -17,13 +17,24 @@ const EasySyncBaseModel_1 = require("../../shared/EasySyncBaseModel");
 class ModifyEntitySite extends MenuSite_1.MenuSite {
     constructor(siteManager, view, model, menuTemplate) {
         super(siteManager, view, menuTemplate);
-        this.formSelector = ".entity-form";
+        this.formSelector = '.entity-form';
         this.ckEditorConfig = {
-            ".editor": {
+            '.editor': {
                 toolbar: ['bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote'],
-                removePlugins: ["Heading", "Image", "ImageCaption", "ImageStyle", "ImageToolbar", "ImageUpload", "Table", "TableToolbar", "MediaEmbed", "CKFinderUploadAdapter"],
-                language: "de"
-            }
+                removePlugins: [
+                    'Heading',
+                    'Image',
+                    'ImageCaption',
+                    'ImageStyle',
+                    'ImageToolbar',
+                    'ImageUpload',
+                    'Table',
+                    'TableToolbar',
+                    'MediaEmbed',
+                    'CKFinderUploadAdapter',
+                ],
+                language: 'de',
+            },
         };
         this.entity = null;
         this.model = model;
@@ -31,15 +42,17 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
     getEntityFromParameters(constructParameters) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!(this.model.prototype instanceof EasySyncBaseModel_1.EasySyncBaseModel)) {
+                // eslint-disable-next-line no-throw-literal
                 throw {
-                    "error": "wrong class given! Expected EasySyncBaseModel, given " + this.model.name
+                    error: `wrong class given! Expected EasySyncBaseModel, given ${this.model.name}`,
                 };
             }
             let entity = null;
-            if (js_helper_1.Helper.isSet(constructParameters, "id")) {
-                entity = this.model.findById(constructParameters["id"], this.model.getRelations());
+            if (js_helper_1.ObjectHelper.isSet(constructParameters, 'id')) {
+                entity = this.model.findById(constructParameters.id, this.model.getRelations());
             }
             if (js_helper_1.Helper.isNull(entity)) {
+                // eslint-disable-next-line new-cap
                 entity = new this.model();
             }
             return entity;
@@ -50,8 +63,8 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
             onConstruct: { get: () => super.onConstruct }
         });
         return __awaiter(this, void 0, void 0, function* () {
-            let res = _super.onConstruct.call(this, constructParameters);
-            let entity = yield this.getEntityFromParameters(constructParameters);
+            const res = _super.onConstruct.call(this, constructParameters);
+            const entity = yield this.getEntityFromParameters(constructParameters);
             if (entity !== null) {
                 this.setEntity(entity);
             }
@@ -61,8 +74,8 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
     setEntity(entity) {
         return __awaiter(this, void 0, void 0, function* () {
             this.entity = entity;
-            yield this._viewLoadedPromise;
-            let values = yield this.dehydrate(this.entity);
+            yield this.getViewLoadedPromise();
+            const values = yield this.dehydrate(this.entity);
             if (js_helper_1.Helper.isNotNull(values)) {
                 yield this.form.setValues(values);
             }
@@ -70,8 +83,8 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
     }
     hydrate(values, entity) {
         return __awaiter(this, void 0, void 0, function* () {
-            let schemaDefinition = this.model.getSchemaDefinition();
-            Object.keys(schemaDefinition.columns).forEach(column => {
+            const schemaDefinition = this.model.getSchemaDefinition();
+            Object.keys(schemaDefinition.columns).forEach((column) => {
                 if (js_helper_1.Helper.isSet(values, column)) {
                     entity[column] = values[column];
                 }
@@ -81,9 +94,9 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
     }
     dehydrate(entity) {
         return __awaiter(this, void 0, void 0, function* () {
-            let values = {};
-            let schemaDefinition = this.model.getSchemaDefinition();
-            Object.keys(schemaDefinition.columns).forEach(column => {
+            const values = {};
+            const schemaDefinition = this.model.getSchemaDefinition();
+            Object.keys(schemaDefinition.columns).forEach((column) => {
                 if (js_helper_1.Helper.isSet(entity, column)) {
                     values[column] = entity[column];
                 }
@@ -91,6 +104,7 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
             return values;
         });
     }
+    // eslint-disable-next-line class-methods-use-this,@typescript-eslint/no-unused-vars
     validate(values, form) {
         return __awaiter(this, void 0, void 0, function* () {
             return true;
@@ -101,7 +115,7 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
     }
     save(values) {
         return __awaiter(this, void 0, void 0, function* () {
-            let entity = yield this.hydrate(values, this.entity);
+            const entity = yield this.hydrate(values, this.entity);
             yield entity.save();
         });
     }
@@ -110,7 +124,7 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
             onViewLoaded: { get: () => super.onViewLoaded }
         });
         return __awaiter(this, void 0, void 0, function* () {
-            let res = _super.onViewLoaded.call(this);
+            const res = _super.onViewLoaded.call(this);
             this.form = new client_1.Form(this.findBy(this.formSelector), (values) => __awaiter(this, void 0, void 0, function* () {
                 this.showLoadingSymbol();
                 try {
@@ -119,22 +133,24 @@ class ModifyEntitySite extends MenuSite_1.MenuSite {
                 }
                 catch (e) {
                     console.error(e);
-                    this.form.setErrors({ "error": e.message });
+                    this.form.setErrors({ error: e.message });
                 }
                 finally {
                     this.removeLoadingSymbol();
                 }
             }));
-            if (js_helper_1.Helper.isNotNull(window["CKEditor"])) {
-                Object.keys(this.ckEditorConfig).forEach(selector => {
-                    console.log("add CK-Editor", selector);
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            if (js_helper_1.Helper.isNotNull(window.CKEditor)) {
+                Object.keys(this.ckEditorConfig).forEach((selector) => {
+                    console.log('add CK-Editor', selector);
                     this.findBy(selector, true).forEach((e) => __awaiter(this, void 0, void 0, function* () {
                         this.form.addEditor(yield CKEditor.create(e, this.ckEditorConfig[selector]));
                     }));
                 });
             }
             this.form.addValidator((values) => __awaiter(this, void 0, void 0, function* () {
-                return yield this.validate(values, this.form);
+                return this.validate(values, this.form);
             }));
             return res;
         });

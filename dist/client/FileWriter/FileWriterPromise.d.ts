@@ -1,6 +1,6 @@
 export declare class FileWriterPromise {
     private fileWriter;
-    private _isWritingPromise;
+    private isWritingPromise;
     constructor(fileWriter: any);
     write(data: any): Promise<unknown>;
 }

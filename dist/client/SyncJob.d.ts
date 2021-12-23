@@ -1,31 +1,30 @@
-import { QueryRunner } from "typeorm";
 export declare class SyncJob {
     static SYNC_PATH_PREFIX: any;
-    _syncedModels: {};
-    _modelNames: any[];
-    _relationshipModels: {};
-    _lastSyncDates: {};
-    _keyedModelClasses: {};
-    _savePromise: Promise<void>;
-    _queryRunner: QueryRunner;
-    _finalRes: any;
-    _syncPromise: any;
-    _manyToManyRelations: {};
+    private syncedModels;
+    private modelNames;
+    private relationshipModels;
+    private lastSyncDates;
+    private keyedModelClasses;
+    private savePromise;
+    private queryRunner;
+    private finalRes;
+    private syncPromise;
+    private manyToManyRelations;
     syncInBackgroundIfDataExists(queries: any, downloadImages?: boolean): Promise<void>;
     getSyncPromise(): Promise<any>;
     sync(queries: any, downloadImages?: boolean): Promise<any>;
-    private _doRuns;
+    private doRuns;
     /**
      * Extract the Entities and saves them(?) for one model
      *
      * @param modelRes
      * @private
      */
-    private _extractEntities;
-    private _buildRequestQuery;
-    private _getLastSyncModels;
-    static _fetchModel(query: any, offset: any): Promise<any>;
-    private _insertOrReplace;
-    private _deleteModels;
-    private _handleManyToManyRelations;
+    private extractEntities;
+    private buildRequestQuery;
+    private static getLastSyncModels;
+    static fetchModel(query: any, offset: any): Promise<any>;
+    private insertOrReplace;
+    private deleteModels;
+    private handleManyToManyRelations;
 }

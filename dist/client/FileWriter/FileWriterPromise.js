@@ -13,16 +13,16 @@ exports.FileWriterPromise = void 0;
 class FileWriterPromise {
     constructor(fileWriter) {
         this.fileWriter = fileWriter;
-        this._isWritingPromise = Promise.resolve();
+        this.isWritingPromise = Promise.resolve();
     }
     write(data) {
         return __awaiter(this, void 0, void 0, function* () {
-            let promise = this._isWritingPromise.then(() => new Promise((res, rej) => {
+            const promise = this.isWritingPromise.then(() => new Promise((res, rej) => {
                 this.fileWriter.onwriteend = res;
                 this.fileWriter.onerror = rej;
                 this.fileWriter.write(data);
             }));
-            this._isWritingPromise = promise.catch(console.error);
+            this.isWritingPromise = promise.catch(console.error);
             return promise;
         });
     }

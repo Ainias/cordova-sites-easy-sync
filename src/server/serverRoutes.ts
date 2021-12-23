@@ -1,19 +1,19 @@
 import * as express from 'express';
-import {EasySyncController} from "./EasySyncController";
+import { EasySyncController } from './EasySyncController';
 
 const easySyncRoutes = express.Router();
 
 const errorHandler = (fn, context) => {
     return (req, res, next) => {
-        const resPromise = fn.call(context, req,res,next);
-        if (resPromise && resPromise.catch){
-            resPromise.catch(err => next(err));
+        const resPromise = fn.call(context, req, res, next);
+        if (resPromise && resPromise.catch) {
+            resPromise.catch((err) => next(err));
         }
-    }
+    };
 };
 
-easySyncRoutes.get("", errorHandler(EasySyncController.sync, EasySyncController));
-easySyncRoutes.post("", errorHandler(EasySyncController.modifyModel, EasySyncController));
-easySyncRoutes.post("/delete", errorHandler(EasySyncController.deleteModel, EasySyncController));
+easySyncRoutes.get('', errorHandler(EasySyncController.sync, EasySyncController));
+easySyncRoutes.post('', errorHandler(EasySyncController.modifyModel, EasySyncController));
+easySyncRoutes.post('/delete', errorHandler(EasySyncController.deleteModel, EasySyncController));
 
-export {easySyncRoutes};
+export { easySyncRoutes };

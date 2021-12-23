@@ -19,7 +19,7 @@ class FilePromise {
     createWriter() {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((res) => {
-                this.fileEntry.createWriter(writer => {
+                this.fileEntry.createWriter((writer) => {
                     res(new FileWriterPromise_1.FileWriterPromise(writer));
                 });
             });
@@ -29,8 +29,10 @@ class FilePromise {
         return __awaiter(this, void 0, void 0, function* () {
             options = Helper_1.Helper.nonNull(options, { create: true, exclusive: false });
             return new Promise((r, rej) => {
-                window["resolveLocalFileSystemURL"]("cdvfile://localhost/persistent/", dirEntry => {
-                    dirEntry.getFile(file, options, fileEntry => {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                window.resolveLocalFileSystemURL('cdvfile://localhost/persistent/', (dirEntry) => {
+                    dirEntry.getFile(file, options, (fileEntry) => {
                         r(new FilePromise(fileEntry));
                     }, rej);
                 }, rej);
@@ -40,8 +42,10 @@ class FilePromise {
     static delete(file) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((r, rej) => {
-                window["resolveLocalFileSystemURL"]("cdvfile://localhost/persistent/", dirEntry => {
-                    dirEntry.getFile(file, { create: false }, fileEntry => {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                window.resolveLocalFileSystemURL('cdvfile://localhost/persistent/', (dirEntry) => {
+                    dirEntry.getFile(file, { create: false }, (fileEntry) => {
                         fileEntry.remove(r, rej, r);
                     }, rej);
                 }, rej);

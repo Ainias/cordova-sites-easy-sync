@@ -17,7 +17,7 @@ class FileTransferPromise {
     constructor(downloadUrl, storagePath) {
         this.downloadUrl = downloadUrl;
         if (Helper_1.Helper.isNull(storagePath)) {
-            let parts = this.downloadUrl.split("/");
+            const parts = this.downloadUrl.split('/');
             if (parts.length > 0) {
                 storagePath = parts[parts.length - 1];
             }
@@ -26,9 +26,9 @@ class FileTransferPromise {
     }
     download() {
         return __awaiter(this, void 0, void 0, function* () {
-            let blob = DataManager_1.DataManager.fetchBlob(this.downloadUrl);
-            let filePromise = yield FilePromise_1.FilePromise.open(this.storagePath);
-            let fileWriter = yield filePromise.createWriter();
+            const blob = DataManager_1.DataManager.fetchBlob(this.downloadUrl);
+            const filePromise = yield FilePromise_1.FilePromise.open(this.storagePath);
+            const fileWriter = yield filePromise.createWriter();
             yield fileWriter.write(yield blob);
         });
     }

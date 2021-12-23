@@ -19,29 +19,33 @@ class ClientFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
     constructor() {
         super(...arguments);
         this.saveOffline = true;
-        this._isDownloaded = false;
-        this._isDownloadedPromise = new js_helper_1.PromiseWithHandlers();
+        this.isDownloaded = false;
+        this.isDownloadedPromise = new js_helper_1.PromiseWithHandlers();
     }
     isDownloadedState() {
         return __awaiter(this, void 0, void 0, function* () {
-            return this._isDownloadedPromise;
+            return this.isDownloadedPromise;
         });
     }
     setLoaded(isLoaded) {
         super.setLoaded(isLoaded);
-        FilePromise_1.FilePromise.open(this.src, { create: false }).then(() => this._isDownloaded = true).catch(e => {
-            console.log("not downloaded, yet!");
-            this._isDownloaded = false;
+        FilePromise_1.FilePromise.open(this.src, { create: false })
+            .then(() => (this.isDownloaded = true))
+            .catch((e) => {
+            console.log('not downloaded, yet!', e);
+            this.isDownloaded = false;
             // ClientFileMedium._handleImages(this)
-        }).finally(() => {
-            this._isDownloadedPromise.resolve(this._isDownloaded);
+        })
+            .finally(() => {
+            this.isDownloadedPromise.resolve(this.isDownloaded);
         });
     }
+    // eslint-disable-next-line class-methods-use-this
     getUrlWithoutDownload() {
-        return "";
+        return '';
     }
     getUrl() {
-        ClientFileMedium._handleImages(this);
+        ClientFileMedium.handleImages(this);
         return this.getUrlWithoutDownload();
     }
     save() {
@@ -62,16 +66,21 @@ class ClientFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             return _super.saveMany.call(this, entities);
         });
     }
-    static _handleImages(entities) {
+    static handleImages(entities) {
         return __awaiter(this, void 0, void 0, function* () {
-            let isArray = Array.isArray(entities);
-            if (!isArray) {
+            if (!Array.isArray(entities)) {
                 entities = [entities];
             }
-            yield Helper_1.Helper.asyncForEach(entities, (entity) => __awaiter(this, void 0, void 0, function* () {
-                if (entity.saveOffline && device.platform !== "browser" && !entity.src.startsWith("data") && !entity.src.startsWith("http") && !entity.src.startsWith("//")) {
-                    yield new FileTransferPromise_1.FileTransferPromise(entity.getServerUrl(false), entity.src).download().catch(e => console.log(e));
-                    entity._isDownloaded = true;
+            yield js_helper_1.ArrayHelper.asyncForEach(entities, (entity) => __awaiter(this, void 0, void 0, function* () {
+                if (entity.saveOffline &&
+                    device.platform !== 'browser' &&
+                    !entity.src.startsWith('data') &&
+                    !entity.src.startsWith('http') &&
+                    !entity.src.startsWith('//')) {
+                    yield new FileTransferPromise_1.FileTransferPromise(entity.getServerUrl(false), entity.src)
+                        .download()
+                        .catch((e) => console.log(e));
+                    entity.isDownloaded = true;
                 }
             }), true);
         });
@@ -81,12 +90,16 @@ class ClientFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             deleteMany: { get: () => super.deleteMany }
         });
         return __awaiter(this, void 0, void 0, function* () {
-            if (device.platform !== "browser") {
-                const res = yield Helper_1.Helper.asyncForEach(entities, entity => FilePromise_1.FilePromise.delete(entity.src).catch(e => console.error(e)), true);
-                console.log("res", res);
+            if (device.platform !== 'browser') {
+                const res = yield Helper_1.Helper.asyncForEach(entities, (entity) => FilePromise_1.FilePromise.delete(entity.src).catch((e) => console.error(e)), true);
+                console.log('res', res);
             }
             return _super.deleteMany.call(this, entities);
         });
+    }
+    // eslint-disable-next-line class-methods-use-this,@typescript-eslint/no-unused-vars
+    getServerUrl(appendDate) {
+        return '';
     }
 }
 exports.ClientFileMedium = ClientFileMedium;

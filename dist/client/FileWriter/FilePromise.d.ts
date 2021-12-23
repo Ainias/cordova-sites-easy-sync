@@ -1,4 +1,4 @@
-import { FileWriterPromise } from "./FileWriterPromise";
+import { FileWriterPromise } from './FileWriterPromise';
 export declare class FilePromise {
     private fileEntry;
     constructor(fileEntry: any);

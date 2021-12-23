@@ -20,30 +20,30 @@ const FileMedium_1 = require("../shared/FileMedium");
 const ClientFileMedium_1 = require("./ClientFileMedium");
 class EasySyncClientDb extends cordova_sites_database_1.BaseDatabase {
     constructor(dbName) {
-        super(dbName || "EasySync");
+        super(dbName || 'EasySync');
     }
-    _createConnectionOptions(database) {
+    createConnectionOptions(database) {
         JSObject.setPrototypeOf(EasySyncBaseModel_1.EasySyncBaseModel, ClientModel_1.ClientModel);
         JSObject.setPrototypeOf(EasySyncPartialModel_1.EasySyncPartialModel, ClientPartialModel_1.ClientPartialModel);
         JSObject.setPrototypeOf(EasySyncBaseModel_1.EasySyncBaseModel.prototype, ClientModel_1.ClientModel.prototype);
         JSObject.setPrototypeOf(EasySyncPartialModel_1.EasySyncPartialModel.prototype, ClientPartialModel_1.ClientPartialModel.prototype);
         JSObject.setPrototypeOf(FileMedium_1.FileMedium, ClientFileMedium_1.ClientFileMedium);
         JSObject.setPrototypeOf(FileMedium_1.FileMedium.prototype, ClientFileMedium_1.ClientFileMedium.prototype);
-        let options = super._createConnectionOptions(database);
-        options["migrationsTableName"] = "migrations";
+        const options = super.createConnectionOptions(database);
+        options.migrationsTableName = 'migrations';
         return options;
     }
 }
 exports.EasySyncClientDb = EasySyncClientDb;
 EasySyncClientDb.BASE_MODEL = null;
 client_1.App.addInitialization(() => __awaiter(void 0, void 0, void 0, function* () {
-    yield EasySyncClientDb.getInstance()._connectionPromise.catch(function (e) {
-        if (typeof EasySyncClientDb.errorListener === "function") {
-            return EasySyncClientDb.errorListener(...arguments);
+    yield EasySyncClientDb.getInstance()
+        .getConnectionPromise()
+        .catch((...args) => {
+        if (typeof EasySyncClientDb.errorListener === 'function') {
+            return EasySyncClientDb.errorListener(...args);
         }
-        else {
-            throw (e);
-        }
+        throw args[0];
     });
 }));
 //# sourceMappingURL=EasySyncClientDb.js.map

@@ -13,20 +13,20 @@ exports.ServerFileMedium = void 0;
 const Helper_1 = require("js-helper/dist/shared/Helper");
 const EasySyncBaseModel_1 = require("../shared/EasySyncBaseModel");
 const stream_1 = require("stream");
-const crypto = require("crypto");
-const fs = require("fs");
+const crypto_1 = require("crypto");
+const fs_1 = require("fs");
+const js_helper_1 = require("js-helper");
 class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
     setLoaded(isLoaded) {
-        // @ts-ignore
         super.setLoaded(isLoaded);
-        this._oldName = this.src;
+        this.oldName = this.src;
     }
     save() {
         const _super = Object.create(null, {
             save: { get: () => super.save }
         });
         return __awaiter(this, void 0, void 0, function* () {
-            yield ServerFileMedium._handleImages(this);
+            yield ServerFileMedium.handleImages(this);
             return _super.save.call(this);
         });
     }
@@ -35,50 +35,46 @@ class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
             saveMany: { get: () => super.saveMany }
         });
         return __awaiter(this, void 0, void 0, function* () {
-            yield ServerFileMedium._handleImages(entities);
+            yield ServerFileMedium.handleImages(entities);
             return _super.saveMany.call(this, entities);
         });
     }
-    static _handleImages(entities) {
+    static handleImages(entities) {
         return __awaiter(this, void 0, void 0, function* () {
-            let isArray = Array.isArray(entities);
-            if (!isArray) {
+            if (!Array.isArray(entities)) {
                 entities = [entities];
             }
-            yield Helper_1.Helper.asyncForEach(entities, (entity) => __awaiter(this, void 0, void 0, function* () { return entity.writeImgToFile(); }), true);
+            yield js_helper_1.ArrayHelper.asyncForEach(entities, (entity) => __awaiter(this, void 0, void 0, function* () { return entity.writeImgToFile(); }), true);
         });
     }
     writeImgToFile() {
         return __awaiter(this, void 0, void 0, function* () {
-            let matches = this.src.match(/^data:([A-Za-z]+)\/([A-Za-z-+0-9\/]+);base64,(.+)$/);
-            //file is already a url
+            const matches = this.src.match(/^data:([A-Za-z]+)\/([A-Za-z-+0-9/]+);base64,(.+)$/);
+            // file is already a url
             if (matches === null || matches.length !== 4) {
-                return;
+                return Promise.resolve();
             }
-            let name = this._oldName;
-            if (Helper_1.Helper.isNull(name) || name.startsWith("data:") || name.startsWith("http") || name.trim() === "") {
-                let seed = crypto.randomBytes(20);
-                name = crypto
-                    .createHash('sha1')
-                    .update(seed)
-                    .digest('hex')
-                    + "." + matches[2];
+            let name = this.oldName;
+            if (Helper_1.Helper.isNull(name) || name.startsWith('data:') || name.startsWith('http') || name.trim() === '') {
+                const seed = crypto_1.randomBytes(20);
+                name = `${crypto_1.createHash('sha1').update(seed).digest('hex')}.${matches[2]}`;
                 // + ".webp";
             }
             const dataBuffer = Buffer.from(matches[3], 'base64');
             const inputStream = new stream_1.Readable();
             let dataStream = new stream_1.PassThrough();
-            const writeStream = fs.createWriteStream(ServerFileMedium.SAVE_PATH + name);
+            const writeStream = fs_1.createWriteStream(ServerFileMedium.SAVE_PATH + name);
             if (ServerFileMedium.createDownscalePipe && ServerFileMedium.isImage(matches[2])) {
                 dataStream = ServerFileMedium.createDownscalePipe();
             }
             inputStream.pipe(dataStream);
             inputStream.push(dataBuffer);
             inputStream.push(null);
-            const resultPromise = new Promise(r => writeStream.addListener("finish", r)).then(this.src = name);
+            const resultPromise = new Promise((r) => {
+                writeStream.addListener('finish', r);
+            }).then((this.src = name));
             dataStream.pipe(writeStream);
             return resultPromise;
-            // return new Promise(r => fs.writeFile(ServerFileMedium.SAVE_PATH+name, , {encoding:"base64"}, r)).then(this.src = name);
         });
     }
     static isImage(ending) {
@@ -94,6 +90,6 @@ class ServerFileMedium extends EasySyncBaseModel_1.EasySyncBaseModel {
     }
 }
 exports.ServerFileMedium = ServerFileMedium;
-ServerFileMedium.SAVE_PATH = "./img_";
+ServerFileMedium.SAVE_PATH = './img_';
 ServerFileMedium.createDownscalePipe = null;
 //# sourceMappingURL=ServerFileMedium.js.map

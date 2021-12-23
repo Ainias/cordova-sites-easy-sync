@@ -13,17 +13,17 @@ exports.AddFileMediumMigration1000000011000 = void 0;
 const js_helper_1 = require("js-helper");
 const FileMedium_1 = require("../FileMedium");
 class AddFileMediumMigration1000000011000 {
-    down(queryRunner) {
+    down() {
         return __awaiter(this, void 0, void 0, function* () {
             return Promise.resolve(undefined);
         });
     }
     up(queryRunner) {
         return __awaiter(this, void 0, void 0, function* () {
-            let table = js_helper_1.MigrationHelper.createTableFromModelClass(FileMedium_1.FileMedium);
-            table.columns.forEach(column => {
-                if (column.name === "src") {
-                    column.type = js_helper_1.MigrationHelper.isServer() ? "MEDIUMTEXT" : "TEXT";
+            const table = js_helper_1.MigrationHelper.createTableFromModelClass(FileMedium_1.FileMedium);
+            table.columns.forEach((column) => {
+                if (column.name === 'src') {
+                    column.type = js_helper_1.MigrationHelper.isServer() ? 'MEDIUMTEXT' : 'TEXT';
                 }
             });
             yield queryRunner.createTable(table);

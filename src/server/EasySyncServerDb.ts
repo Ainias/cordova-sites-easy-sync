@@ -1,19 +1,18 @@
-import {BaseDatabase} from "cordova-sites-database";
-import {FileMedium} from "../shared/FileMedium";
-import {ServerFileMedium} from "./ServerFileMedium";
-import {EasySyncBaseModel} from "../shared/EasySyncBaseModel";
+import { BaseDatabase } from 'cordova-sites-database';
+import { FileMedium } from '../shared/FileMedium';
+import { ServerFileMedium } from './ServerFileMedium';
+import { EasySyncBaseModel } from '../shared/EasySyncBaseModel';
 
 export class EasySyncServerDb extends BaseDatabase {
-
     static CONNECTION_PARAMETERS;
 
-    _createConnectionOptions(database) {
+    createConnectionOptions(database) {
         Object.setPrototypeOf(FileMedium, ServerFileMedium);
         Object.setPrototypeOf(FileMedium.prototype, ServerFileMedium.prototype);
 
-        let options = super._createConnectionOptions(database);
+        const options = super.createConnectionOptions(database);
 
-        return Object["assign"](options, EasySyncServerDb.CONNECTION_PARAMETERS);
+        return Object.assign(options, EasySyncServerDb.CONNECTION_PARAMETERS);
     }
 
     async saveEntity(entities) {
@@ -27,29 +26,38 @@ export class EasySyncServerDb extends BaseDatabase {
             return entities;
         }
 
-        let model = entities[0].constructor;
+        const model = entities[0].constructor;
 
-        let entitiesIds = [];
-        entities.forEach(entity => {
+        const entitiesIds = [];
+        entities.forEach((entity) => {
             entity.updatedAt = new Date();
             if (entity.id !== null) {
-                entitiesIds.push(entity.id)
+                entitiesIds.push(entity.id);
             }
         });
-        let indexedCompareEntities = {};
-        let compareEntities = await this.findByIds(model, entitiesIds);
-        compareEntities.forEach(cEnt => indexedCompareEntities[cEnt.id] = cEnt);
+        const indexedCompareEntities = {};
+        const compareEntities = await this.findByIds(model, entitiesIds);
+        compareEntities.forEach((cEnt) => (indexedCompareEntities[cEnt.id] = cEnt));
 
-        entities.forEach(entity => {
+        entities.forEach((entity) => {
             if (entity.id !== null) {
-                if (!indexedCompareEntities[entity.id] || indexedCompareEntities[entity.id].version === parseInt(entity.version)) {
+                if (
+                    !indexedCompareEntities[entity.id] ||
+                    indexedCompareEntities[entity.id].version === Number(entity.version)
+                ) {
                     entity.version++;
                 } else {
-                    throw new Error("optimistic locking exception for id " + entity.id + " and model " + entity.constructor.getSchemaName()) + ": got version " + entity.version + ", but expected " + indexedCompareEntities[entity.id].version;
+                    throw new Error(
+                        `optimistic locking exception for id ${
+                            entity.id
+                        } and model ${entity.constructor.getSchemaName()}: got version ${
+                            entity.version
+                        }, but expected ${indexedCompareEntities[entity.id].version}`
+                    );
                 }
             }
         });
-        let savedEntites = await super.saveEntity(entities);
+        const savedEntites = await super.saveEntity(entities);
         if (!isArray) {
             if (savedEntites.length > 0) {
                 return savedEntites[0];
@@ -76,20 +84,22 @@ export class EasySyncServerDb extends BaseDatabase {
             model = entities[0].constructor;
         }
 
-        if (typeof entities[0] === "number") {
+        if (typeof entities[0] === 'number') {
             entities = await model.findByIds(entities, model.getRelations());
         }
 
         if (entities[0] instanceof EasySyncBaseModel) {
-            entities.forEach(ent => {
+            entities.forEach((ent) => {
                 ent.deleted = true;
             });
 
             return this.saveEntity(entities);
         }
-        else {
-            return super.deleteEntity(entities, model);
-        }
+        return super.deleteEntity(entities, model);
+    }
+
+    static getModel(model: string) {
+        return super.getModel(model) as typeof EasySyncBaseModel;
     }
 }
 

@@ -1,4 +1,4 @@
-import { BaseModel } from "cordova-sites-database/dist/cordova-sites-database";
+import { BaseModel } from 'cordova-sites-database/dist/cordova-sites-database';
 export declare class LastSyncDates extends BaseModel {
     model: string;
     lastSynced: number;
@@ -8,11 +8,5 @@ export declare class LastSyncDates extends BaseModel {
     setModel(model: any): void;
     getLastSynced(): number;
     setLastSynced(lastSynced: any): void;
-    static getColumnDefinitions(): {
-        id: {
-            primary: boolean;
-            type: any;
-            generated: boolean;
-        };
-    };
+    static getColumnDefinitions(): Record<string, string | import("cordova-sites-database/dist/BDColumnType").BDColumnType>;
 }

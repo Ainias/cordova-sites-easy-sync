@@ -1,47 +1,48 @@
-import {BaseDatabase, BaseModel} from "cordova-sites-database/dist/cordova-sites-database";
-import {DataManager} from "cordova-sites/dist/client";
-import {Helper} from "js-helper/dist/shared";
+import { BaseDatabase, BaseModel } from 'cordova-sites-database/dist/cordova-sites-database';
+import { DataManager } from 'cordova-sites/dist/client';
+import { Helper } from 'js-helper/dist/shared';
 
 export class ClientModel extends BaseModel {
-
     static SAVE_PATH: string;
     static DELETE_PATH: string;
 
     static getColumnDefinitions() {
-        let columns = super.getColumnDefinitions();
-        if (columns["id"] && columns["id"]["generated"]) {
-            columns["id"]["generated"] = false;
+        const columns = super.getColumnDefinitions();
+        if (columns.id && typeof columns.id !== 'string' && columns.id.generated) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            columns.id.generated = false;
         }
         return columns;
     }
 
-    static async _fromJson(jsonObjects, models, includeRelations) {
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/no-empty-function
+    static async fromJson(jsonObjects, models, includeRelations) {}
 
-    toJSON(includeFull?) {
-    };
+    // eslint-disable-next-line class-methods-use-this,@typescript-eslint/no-unused-vars,@typescript-eslint/no-empty-function
+    toJSON(includeFull?) {}
 
     async save(local?) {
         if (!local) {
-            let values = this.toJSON();
-            let data = await DataManager.send((<typeof ClientModel>this.constructor).SAVE_PATH, {
-                "model": (<typeof ClientModel>this.constructor).getSchemaName(),
-                "values": values
+            const values = this.toJSON();
+            const data = await DataManager.send((<typeof ClientModel>this.constructor).SAVE_PATH, {
+                model: (<typeof ClientModel>this.constructor).getSchemaName(),
+                values,
             });
 
             if (data.success === false) {
                 throw new Error(data.errors);
             }
-            await (<typeof ClientModel>this.constructor)._fromJson(data, this, true);
+            await (<typeof ClientModel>this.constructor).fromJson(data, this, true);
         }
         return super.save();
     }
 
     async delete(local?) {
         if (!local) {
-            let data = await DataManager.send((<typeof ClientModel>this.constructor).DELETE_PATH, {
-                "model": (<typeof ClientModel>this.constructor).getSchemaName(),
-                "id": this.id
+            const data = await DataManager.send((<typeof ClientModel>this.constructor).DELETE_PATH, {
+                model: (<typeof ClientModel>this.constructor).getSchemaName(),
+                id: this.id,
             });
             if (data.success === false) {
                 throw new Error(data.errors);
@@ -53,21 +54,21 @@ export class ClientModel extends BaseModel {
 
     static async saveMany(entities, local?) {
         if (!local) {
-            let values = [];
+            const values = [];
 
-            entities.forEach(entity => {
-                values.push(entity.toJSON())
+            entities.forEach((entity) => {
+                values.push(entity.toJSON());
             });
 
-            let data = await DataManager.send(this.SAVE_PATH, {
-                "model": this.getSchemaName(),
-                "values": values
+            const data = await DataManager.send(this.SAVE_PATH, {
+                model: this.getSchemaName(),
+                values,
             });
 
             if (data.success === false) {
                 throw new Error(data.errors);
             }
-            entities = await this._fromJson(data, undefined, true);
+            entities = await this.fromJson(data, undefined, true);
         }
 
         return super.saveMany(entities);
@@ -80,10 +81,10 @@ export class ClientModel extends BaseModel {
             BaseDatabase.TYPES.TEXT,
         ];
 
-        let definitions = super.getSchemaDefinition();
-        let columns = definitions["columns"];
+        const definitions = super.getSchemaDefinition();
+        const { columns } = definitions;
 
-        Object.keys(columns).forEach(column => {
+        Object.keys(columns).forEach((column) => {
             if (columns[column].type === BaseDatabase.TYPES.MEDIUMTEXT) {
                 columns[column].type = BaseDatabase.TYPES.TEXT;
             }
@@ -100,5 +101,5 @@ export class ClientModel extends BaseModel {
     }
 }
 
-ClientModel.SAVE_PATH = "/sync";
-ClientModel.DELETE_PATH = "/sync/delete";
+ClientModel.SAVE_PATH = '/sync';
+ClientModel.DELETE_PATH = '/sync/delete';

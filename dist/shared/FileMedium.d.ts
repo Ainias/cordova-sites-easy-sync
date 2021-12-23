@@ -1,16 +1,10 @@
-import { EasySyncBaseModel } from "./EasySyncBaseModel";
+import { EasySyncBaseModel } from './EasySyncBaseModel';
 export declare class FileMedium extends EasySyncBaseModel {
     static PUBLIC_PATH: string;
     protected src: any;
     protected saveOffline: boolean;
-    protected _isDownloaded: boolean;
-    static getColumnDefinitions(): {
-        id: {
-            primary: boolean;
-            type: any;
-            generated: boolean;
-        };
-    };
+    protected isDownloaded: boolean;
+    static getColumnDefinitions(): Record<string, string | import("cordova-sites-database").BDColumnType>;
     getServerUrl(appendDate?: any): any;
     getUrlWithoutDownload(): any;
     getUrl(): any;

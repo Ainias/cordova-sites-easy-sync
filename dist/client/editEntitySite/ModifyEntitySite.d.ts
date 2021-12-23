@@ -1,5 +1,5 @@
-import { MenuSite } from "cordova-sites/dist/client/js/Context/MenuSite";
-import { EasySyncBaseModel } from "../../shared/EasySyncBaseModel";
+import { MenuSite } from 'cordova-sites/dist/client/js/Context/MenuSite';
+import { EasySyncBaseModel } from '../../shared/EasySyncBaseModel';
 export declare class ModifyEntitySite<Model extends EasySyncBaseModel> extends MenuSite {
     protected formSelector: string;
     protected ckEditorConfig: any;

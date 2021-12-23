@@ -15,34 +15,35 @@ const client_1 = require("cordova-sites/dist/client");
 const shared_1 = require("js-helper/dist/shared");
 class ClientModel extends cordova_sites_database_1.BaseModel {
     static getColumnDefinitions() {
-        let columns = super.getColumnDefinitions();
-        if (columns["id"] && columns["id"]["generated"]) {
-            columns["id"]["generated"] = false;
+        const columns = super.getColumnDefinitions();
+        if (columns.id && typeof columns.id !== 'string' && columns.id.generated) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            columns.id.generated = false;
         }
         return columns;
     }
-    static _fromJson(jsonObjects, models, includeRelations) {
-        return __awaiter(this, void 0, void 0, function* () {
-        });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/no-empty-function
+    static fromJson(jsonObjects, models, includeRelations) {
+        return __awaiter(this, void 0, void 0, function* () { });
     }
-    toJSON(includeFull) {
-    }
-    ;
+    // eslint-disable-next-line class-methods-use-this,@typescript-eslint/no-unused-vars,@typescript-eslint/no-empty-function
+    toJSON(includeFull) { }
     save(local) {
         const _super = Object.create(null, {
             save: { get: () => super.save }
         });
         return __awaiter(this, void 0, void 0, function* () {
             if (!local) {
-                let values = this.toJSON();
-                let data = yield client_1.DataManager.send(this.constructor.SAVE_PATH, {
-                    "model": this.constructor.getSchemaName(),
-                    "values": values
+                const values = this.toJSON();
+                const data = yield client_1.DataManager.send(this.constructor.SAVE_PATH, {
+                    model: this.constructor.getSchemaName(),
+                    values,
                 });
                 if (data.success === false) {
                     throw new Error(data.errors);
                 }
-                yield this.constructor._fromJson(data, this, true);
+                yield this.constructor.fromJson(data, this, true);
             }
             return _super.save.call(this);
         });
@@ -53,9 +54,9 @@ class ClientModel extends cordova_sites_database_1.BaseModel {
         });
         return __awaiter(this, void 0, void 0, function* () {
             if (!local) {
-                let data = yield client_1.DataManager.send(this.constructor.DELETE_PATH, {
-                    "model": this.constructor.getSchemaName(),
-                    "id": this.id
+                const data = yield client_1.DataManager.send(this.constructor.DELETE_PATH, {
+                    model: this.constructor.getSchemaName(),
+                    id: this.id,
                 });
                 if (data.success === false) {
                     throw new Error(data.errors);
@@ -70,18 +71,18 @@ class ClientModel extends cordova_sites_database_1.BaseModel {
         });
         return __awaiter(this, void 0, void 0, function* () {
             if (!local) {
-                let values = [];
-                entities.forEach(entity => {
+                const values = [];
+                entities.forEach((entity) => {
                     values.push(entity.toJSON());
                 });
-                let data = yield client_1.DataManager.send(this.SAVE_PATH, {
-                    "model": this.getSchemaName(),
-                    "values": values
+                const data = yield client_1.DataManager.send(this.SAVE_PATH, {
+                    model: this.getSchemaName(),
+                    values,
                 });
                 if (data.success === false) {
                     throw new Error(data.errors);
                 }
-                entities = yield this._fromJson(data, undefined, true);
+                entities = yield this.fromJson(data, undefined, true);
             }
             return _super.saveMany.call(this, entities);
         });
@@ -92,9 +93,9 @@ class ClientModel extends cordova_sites_database_1.BaseModel {
             cordova_sites_database_1.BaseDatabase.TYPES.STRING,
             cordova_sites_database_1.BaseDatabase.TYPES.TEXT,
         ];
-        let definitions = super.getSchemaDefinition();
-        let columns = definitions["columns"];
-        Object.keys(columns).forEach(column => {
+        const definitions = super.getSchemaDefinition();
+        const { columns } = definitions;
+        Object.keys(columns).forEach((column) => {
             if (columns[column].type === cordova_sites_database_1.BaseDatabase.TYPES.MEDIUMTEXT) {
                 columns[column].type = cordova_sites_database_1.BaseDatabase.TYPES.TEXT;
             }
@@ -110,6 +111,6 @@ class ClientModel extends cordova_sites_database_1.BaseModel {
     }
 }
 exports.ClientModel = ClientModel;
-ClientModel.SAVE_PATH = "/sync";
-ClientModel.DELETE_PATH = "/sync/delete";
+ClientModel.SAVE_PATH = '/sync';
+ClientModel.DELETE_PATH = '/sync/delete';
 //# sourceMappingURL=ClientModel.js.map

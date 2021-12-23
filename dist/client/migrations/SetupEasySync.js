@@ -15,42 +15,42 @@ const cordova_sites_database_1 = require("cordova-sites-database/dist/cordova-si
 class SetupEasySync1000000000500 {
     up(queryRunner) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield queryRunner.dropTable("last_sync_dates", true);
-            yield this._addLastSyncDates(queryRunner);
+            yield queryRunner.dropTable('last_sync_dates', true);
+            yield this.addLastSyncDates(queryRunner);
         });
     }
-    _addLastSyncDates(queryRunner) {
+    addLastSyncDates(queryRunner) {
         return __awaiter(this, void 0, void 0, function* () {
-            let lastSyncDatesTable = new typeorm_1.Table({
-                name: "last_sync_dates",
+            const lastSyncDatesTable = new typeorm_1.Table({
+                name: 'last_sync_dates',
                 columns: [
                     {
-                        name: "id",
-                        type: "Integer",
+                        name: 'id',
+                        type: 'Integer',
                         isPrimary: true,
                         isGenerated: true,
-                        generationStrategy: "increment",
+                        generationStrategy: 'increment',
                     },
                     {
-                        name: "model",
+                        name: 'model',
                         type: cordova_sites_database_1.BaseDatabase.TYPES.STRING,
-                        isNullable: true
+                        isNullable: true,
                     },
                     {
-                        name: "lastSynced",
+                        name: 'lastSynced',
                         type: cordova_sites_database_1.BaseDatabase.TYPES.DATE,
-                        isNullable: true
+                        isNullable: true,
                     },
                     {
-                        name: "where",
+                        name: 'where',
                         type: cordova_sites_database_1.BaseDatabase.TYPES.TEXT,
-                    }
-                ]
+                    },
+                ],
             });
-            return yield queryRunner.createTable(lastSyncDatesTable, true);
+            return queryRunner.createTable(lastSyncDatesTable, true);
         });
     }
-    down(queryRunner) {
+    down() {
         return undefined;
     }
 }
